@@ -1,16 +1,27 @@
 #include <lithium_http_server.hh>
-#include "GdtEntriesCache.h"
 
+#include "GdtEntriesCache.h"
+#include "model/Config.h"
 #include "main.h"
 
 using namespace li;
 
 int main()
 {
-    http_api api;
+    // load config
+    g_Config = new model::Config("config.json");
+    
+    // load data form gdt server
     auto ge = GdtEntriesCache::getInstance();
-    // GET: listPerEmailApi($email, $page = 1, $count = 25, $orderDirection = 'ASC')
-    // POST: sumPerEmailApi email
+    if(!ge->initialize()) {
+        fprintf(stderr, "error initializing gdt entries cache\n");
+        return -1;
+    }
+
+    http_api api;
+    api.get("/status") = [](http_request& request, http_response& response) {
+        response.write("status: ok");
+    };
     api.get("/listPerEmailApi/{{email}}") = [&](http_request& request, http_response& response) {
         auto params = request.url_parameters(s::email = std::string());
         response.write(ge->listPerEmailApi(params.email));
@@ -43,5 +54,8 @@ int main()
 
     // start http server
     http_serve(api, 8710);
+
+    delete g_Config;
+    g_Config = nullptr;
     return 0;
 }

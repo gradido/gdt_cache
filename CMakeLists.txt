@@ -40,7 +40,10 @@ set(LIBS  ${CURL_LIBRARIES}
           ${OPENSSL_LIBRARIES})
 
 # Directory where lithium headers are located if not in the default include path.
-include_directories(third_party/lithium/single_headers)
+include_directories(
+    third_party/lithium/single_headers
+    third_party/rapidjson/include
+)
 
 #add_custom_target(symbols_generation COMMAND li_symbol_generator ${CMAKE_CURRENT_SOURCE_DIR})
 
