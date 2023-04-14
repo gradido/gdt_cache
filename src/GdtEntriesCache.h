@@ -2,16 +2,13 @@
 #define __GDT_CACHE_GDT_ENTRIES_CACHE_H
 
 #include <string>
+#include <unordered_map>
+#include <memory>
+#include "model/GdtEntryList.h"
 
 class GdtEntriesCache
 {
 public:
-    enum class OrderDirections 
-    {
-        ASC,
-        DESC
-    };
-
     ~GdtEntriesCache();
     static GdtEntriesCache* getInstance();
 
@@ -22,15 +19,17 @@ public:
         const std::string& email, 
         int page = 1, 
         int count = 25, 
-        OrderDirections order = OrderDirections::ASC
+        model::GdtEntryList::OrderDirections order = model::GdtEntryList::OrderDirections::ASC
     );
 
     std::string sumPerEmailApi(const std::string& email);
 
-    static OrderDirections orderDirectionFromString(const std::string& orderDirection);
+    
 
 protected:
     GdtEntriesCache();
+    //! email GdtEntryList used shared ptr because it could be pointed multiple times on by different emails
+    std::unordered_map<std::string, std::shared_ptr<model::GdtEntryList>> mGdtEntriesByEmails; 
 
 };
 

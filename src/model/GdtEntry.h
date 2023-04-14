@@ -28,6 +28,13 @@ namespace model {
         rapidjson::Value toJson(rapidjson::Document::AllocatorType& alloc);
         const char* getTypename() { return "GdtEntry"; }
 
+        bool operator== (const GdtEntry& b);
+        inline bool operator!= (const GdtEntry& b) {
+            return !(*this == b);
+        };
+
+        inline int getId() {return mId;}
+        inline float getGdt() {return mGDT;}
         
     protected:
         int					mId;

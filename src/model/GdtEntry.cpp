@@ -80,4 +80,34 @@ namespace model {
 
 		return gdtEntry;			
 	}
+
+	/*
+	int					mId;
+        float				mAmount; // normal euro sum
+        std::string			mDateString;
+        std::string         mEmail;
+        std::string			mComment;
+        std::string         mCouponCode;
+        GdtEntryType		mGdtEntryType;
+        float				mFactor;
+        float               mAmount2;
+        float               mFactor2;
+        float				mGDT; // resulting gdt
+	*/
+	bool GdtEntry::operator== (const GdtEntry& b)
+	{
+		return 
+			mId == b.mId && 
+			mAmount == b.mAmount &&
+			mDateString == b.mDateString && 
+			mEmail == b.mEmail &&
+			mComment == b.mComment &&
+			mCouponCode == b.mCouponCode &&
+			mGdtEntryType == b.mGdtEntryType &&
+			mFactor == b.mFactor &&
+			mAmount2 == b.mAmount2 &&
+			mFactor2 == b.mFactor2 &&
+			mGDT == b.mGDT
+			;
+	}
 }

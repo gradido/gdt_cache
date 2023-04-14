@@ -43,7 +43,7 @@ int main()
                 s::orderDirection = std::string()
             );
             response.write(
-                ge->listPerEmailApi(params.email, params.page, params.count, ge->orderDirectionFromString(params.orderDirection))
+                ge->listPerEmailApi(params.email, params.page, params.count, model::GdtEntryList::orderDirectionFromString(params.orderDirection))
             );
         };
 
