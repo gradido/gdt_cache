@@ -1,25 +1,48 @@
-#ifndef __GDT_CACHE_MODEL_GDT_ENTRY_H
-#define __GDT_CACHE_MODEL_GDT_ENTRY_H
+#ifndef __GRADIDO_DESKTOP_MODEL_GRAPHQL_GDT_ENTRY_H
+#define __GRADIDO_DESKTOP_MODEL_GRAPHQL_GDT_ENTRY_H
 
-#include <string>
+#include "Base.h"
 
-namespace model 
-{
-    struct GdtEntry {
-        int amount;
-        int amount2;
-        int gdt;
-        int factor;
-        int factor2;
-        std::string comment;
-        std::string coupon_code;
-        std::string source;
-        std::string project;
-        int id;
-        std::string date;
-        std::string email;
-        int gdt_entry_type_id;
+namespace model {
+	
+    class GdtEntry : public Base
+    {
+    public:
+        enum class GdtEntryType : uint8_t
+        {
+            FORM = 1,
+            CVS = 2,
+            ELOPAGE = 3,
+            ELOPAGE_PUBLISHER = 4,
+            DIGISTORE = 5,
+            CVS2 = 6,
+            GLOBAL_MODIFICATOR = 7,
+            MAX
+        };
+
+        static const char* getGdtEntryTypeString(GdtEntryType type);
+
+        GdtEntry(rapidjson::Value& gdtEntry);
+        ~GdtEntry();
+
+        rapidjson::Value toJson(rapidjson::Document::AllocatorType& alloc);
+        const char* getTypename() { return "GdtEntry"; }
+
+        
+    protected:
+        int					mId;
+        float				mAmount; // normal euro sum
+        std::string			mDateString;
+        std::string         mEmail;
+        std::string			mComment;
+        std::string         mCouponCode;
+        GdtEntryType		mGdtEntryType;
+        float				mFactor;
+        float               mAmount2;
+        float               mFactor2;
+        float				mGDT; // resulting gdt
+
     };
 }
 
-#endif //__GDT_CACHE_MODEL_GDT_ENTRY_H
+#endif //__GRADIDO_DESKTOP_MODEL_GRAPHQL_GDT_ENTRY_H

@@ -32,8 +32,6 @@ public:
 protected:
     GdtEntriesCache();
 
-    // store complete answer string in memory
-    // 
 };
 
 #endif //__GDT_CACHE_GDT_ENTRIES_CACHE_H

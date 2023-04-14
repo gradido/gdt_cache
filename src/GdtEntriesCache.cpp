@@ -30,15 +30,25 @@ bool GdtEntriesCache::initialize()
     std::string requestUrl = "https://" + g_Config->gdtServerUrl;
     requestUrl += "/contacts/apiIndex";
     auto res = http_get(requestUrl);
+
+    printf("[%s] used time for get request: %s\n", __FUNCTION__, timeUsed.string().data());
+    timeUsed.reset();
     Document bodyJson;
     bodyJson.Parse(res.body.data()); 
-    printf("get contacts result: %s\n", res.body.data());   
 
-    printf("[%s] used time: %s\n", __FUNCTION__, timeUsed.string().data());
+    printf("[%s] used time parsing to json: %s\n", __FUNCTION__, timeUsed.string().data());
+    timeUsed.reset();
+    for (auto& contact : bodyJson.GetArray()){
+        printf("%s ", contact["email"].GetString());  
+    }
+    printf("[%s] used time printing: %s\n", __FUNCTION__, timeUsed.string().data());
+        
+    //printf("get contacts result: %s\n", res.body.data());   
+    printf("size: %d kByte\n", res.body.size() / 1024);    
 
     return false;
 
-    return true;
+    //return true;
 }
 
 std::string GdtEntriesCache::listPerEmailApi(
