@@ -9,6 +9,8 @@ namespace model
     {
         Config(const char* configFilename);
         std::string gdtServerUrl;
+        //! minimal cache timeout in seconds
+        int minCacheTimeout;
     };
 }
 extern model::Config* g_Config;

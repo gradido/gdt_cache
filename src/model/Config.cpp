@@ -9,6 +9,7 @@ using namespace rapidjson;
 namespace model {
 
     Config::Config(const char* configFilename)
+    : minCacheTimeout(10)
     {
         std::ifstream ifsConfig(configFilename);
         IStreamWrapper iswConfig(ifsConfig);
@@ -17,6 +18,9 @@ namespace model {
         configJson.ParseStream(iswConfig);
         if(configJson.HasMember("gdtServerUrl")) {
             gdtServerUrl = configJson["gdtServerUrl"].GetString();
+        }
+        if(configJson.HasMember("minCacheTimeout")) {
+            minCacheTimeout = configJson["minCacheTimeout"].GetInt();
         }
     }
 }

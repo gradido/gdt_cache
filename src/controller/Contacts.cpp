@@ -14,6 +14,6 @@ namespace controller
    
     bool Contacts::loadFromJsonString(const std::string& jsonString)
     {
-        
+        return false;
     }
 }

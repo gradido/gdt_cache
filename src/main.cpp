@@ -13,9 +13,14 @@ int main()
     
     // load data form gdt server
     auto ge = GdtEntriesCache::getInstance();
-    if(!ge->initialize()) {
-        fprintf(stderr, "error initializing gdt entries cache\n");
-        return -1;
+    try {
+        if(!ge->initialize()) {
+            fprintf(stderr, "error initializing gdt entries cache\n");
+            return -1;
+        }
+    } catch(std::exception& ex) {
+        fprintf(stderr, "exception thrown on initialize: %s\n", ex.what());
+        return -2;
     }
 
     http_api api;

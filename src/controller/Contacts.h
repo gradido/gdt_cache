@@ -4,8 +4,6 @@
 #include <string>
 #include <map>
 
-#include "../model/Contact.h"
-
 namespace controller
 {
     class Contacts
@@ -20,6 +18,7 @@ namespace controller
         */
         bool loadFromJsonString(const std::string& jsonString);
     protected:
+        //std::map<int, model::Contact
     };
 }
 

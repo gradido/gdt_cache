@@ -1,5 +1,7 @@
 #include "GdtEntryList.h"
 #include "../lib/RapidjsonHelper.h"
+#include "../GradidoBlockchainException.h"
+#include "Config.h"
 
 #include <cmath>
 
@@ -14,12 +16,17 @@ namespace model {
 		updateGdtEntries(gdtEntryList);
 	}
 
+	GdtEntryList::GdtEntryList()
+		: mTotalCount(0), mTotalGDTSum(0.0f)
+	{
+	}
+
 	GdtEntryList::~GdtEntryList()
 	{
 
 	}
 
-	int GdtEntryList::updateGdtEntries(Value& gdtEntryList)
+	int GdtEntryList::updateGdtEntries(Value& gdtEntryList, std::set<std::string>* emails/*= nullptr*/)
 	{
 		checkMember(gdtEntryList, "count", MemberType::INTEGER);
 		checkMember(gdtEntryList, "gdtEntries", MemberType::ARRAY);
@@ -38,6 +45,9 @@ namespace model {
 				compareEntries = false;
 			}
 			calculateGdtSum += entry.getGdt();
+			if(emails) {
+				emails->insert(entry.getEmail());
+			}
 			if(!compareEntries) {
 				mGdtEntries.push_back(gdtEntry);
 				addedOrUpdatedCount++;
@@ -64,10 +74,11 @@ namespace model {
 			fprintf(stderr, "[%s] gdt sum mismatch total gdt sum: %.4f != calculated gdt sum: %.4f\n",
 				__FUNCTION__, mTotalGDTSum, calculateGdtSum);
 		}
+		mLastUpdate = std::time(nullptr);
 		return addedOrUpdatedCount;
 	}
 
-	Value GdtEntryList::toJson(Document::AllocatorType& alloc, Profiler timeUsed)
+	Value GdtEntryList::toJson(rapidjson::Document::AllocatorType& alloc)
 	{
 		Value listGDTEntries(kObjectType);
 
@@ -80,10 +91,18 @@ namespace model {
 
 		listGDTEntries.AddMember("gdtEntries", gdtEntries, alloc);
 		listGDTEntries.AddMember("gdtSum", mTotalGDTSum, alloc);
-		listGDTEntries.AddMember("state", "success", alloc);
-		listGDTEntries.AddMember("timeUsed", timeUsed.seconds(), alloc);
 
 		return listGDTEntries;
+	}
+
+	Value GdtEntryList::toJson(Document::AllocatorType& alloc, Profiler timeUsed)
+	{
+		auto result = toJson(alloc);
+		
+		result.AddMember("state", "success", alloc);
+		result.AddMember("timeUsed", timeUsed.seconds(), alloc);
+
+		return result;
 	}
 
 	Value GdtEntryList::toJson(
@@ -119,6 +138,19 @@ namespace model {
 		if(orderDirection == "DESC") return OrderDirections::DESC;
 		fprintf(stderr, "[%s] invalid order direction: %s, use ASC as default\n", __FUNCTION__, orderDirection.data());
 		return OrderDirections::ASC;
+	}
+	const char* GdtEntryList::orderDirectionsToString(GdtEntryList::OrderDirections dir)
+	{
+		switch(dir) {
+			case OrderDirections::ASC: return "ASC";
+			case OrderDirections::DESC: return "DESC";
+		}
+		throw GradidoUnhandledEnum("GdtEntryList::orderDirectionsToString", "OrderDirections", static_cast<int>(dir));
+	}
+
+	bool GdtEntryList::canUpdate()
+	{
+		return (std::time(nullptr) - mLastUpdate) > g_Config->minCacheTimeout;
 	}
 
 }

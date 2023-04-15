@@ -35,6 +35,7 @@ namespace model {
 
         inline int getId() {return mId;}
         inline float getGdt() {return mGDT;}
+        inline const std::string& getEmail() { return mEmail;}
         
     protected:
         int					mId;
