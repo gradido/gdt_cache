@@ -14,7 +14,9 @@ public:
     static GdtEntriesCache* getInstance();
 
     // fill up cache, load every gdt entry request from gdt server, could need some time
-    bool initialize();
+    bool initializeFromPhp();
+    // fill up cache, directly access gdt server db and request gdt entries only if global modificators are not up to date
+    bool initializeFromDb();
 
     //! return json string from cache and schedule update for this email
     std::string listPerEmailApi(

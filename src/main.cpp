@@ -3,6 +3,7 @@
 #include "GdtEntriesCache.h"
 #include "model/Config.h"
 #include "main.h"
+#include "boost/lexical_cast/bad_lexical_cast.hpp"
 
 using namespace li;
 
@@ -14,14 +15,18 @@ int main()
     // load data form gdt server
     auto ge = GdtEntriesCache::getInstance();
     try {
-        if(!ge->initialize()) {
+        if(!ge->initializeFromDb()) {
             fprintf(stderr, "error initializing gdt entries cache\n");
             return -1;
         }
+    } catch(boost::bad_lexical_cast& ex) {
+        fprintf(stderr, "exception thrown on initialize: bad lexical cast from source: %s to target: %s\n",
+            ex.source_type().name(), ex.target_type().name());
+        return -3;
     } catch(std::exception& ex) {
         fprintf(stderr, "exception thrown on initialize: %s\n", ex.what());
         return -2;
-    }
+    }    
 
     http_api api;
     api.get("/status") = [](http_request& request, http_response& response) {

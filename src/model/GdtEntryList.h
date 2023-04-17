@@ -24,9 +24,13 @@ namespace model {
 		GdtEntryList();
 		~GdtEntryList();
 
+		
 		//! \return added gdt entries count
 		//! \param emails point to set if you like to know which email addresses are present in gdt entries
 		int updateGdtEntries(rapidjson::Value& gdtEntryList, std::set<std::string>* emails = nullptr);
+
+		//! add gdt entry from db read, one after another
+		void addGdtEntry(GdtEntry gdtEntry);
 
 		rapidjson::Value toJson(rapidjson::Document::AllocatorType& alloc);
 		rapidjson::Value toJson(rapidjson::Document::AllocatorType& alloc, Profiler timeUsed);
@@ -46,6 +50,7 @@ namespace model {
 
 		inline size_t getGdtEntriesCount() { return mGdtEntries.size();}
 		inline int getTotalCount() {return mTotalCount;}
+		inline const std::list<GdtEntry>& getGdtEntries() const {return mGdtEntries;}
 
 		// todo calculate sum
 		// update with new data

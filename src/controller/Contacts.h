@@ -3,6 +3,12 @@
 
 #include <string>
 #include <map>
+#include <memory>
+#include "../model/Customer.h"
+
+#include <lithium_mysql.hh>
+
+typedef std::map<int, std::shared_ptr<model::Customer>> CustomersMap;
 
 namespace controller
 {
@@ -12,13 +18,11 @@ namespace controller
         Contacts();
         ~Contacts();
 
-        /*! \params jsonString
-         * expected format
-         * [{"id":1,"email":"email@email.com","parent_contact_id":0}]
-        */
-        bool loadFromJsonString(const std::string& jsonString);
+        bool loadCustomersFromDb(li::mysql_connection<li::mysql_functions_blocking> connection);
+        inline const CustomersMap& getCustomers() {return mCustomers;}
+        
     protected:
-        //std::map<int, model::Contact
+        CustomersMap mCustomers;
     };
 }
 

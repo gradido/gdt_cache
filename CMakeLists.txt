@@ -28,14 +28,16 @@ if(MSVC)
     source_group("model" FILES ${MODEL})    
 endif(MSVC)
 
+add_subdirectory(third_party/mariadb-connector-c)
+
 find_package(CURL REQUIRED)
 find_package(Threads REQUIRED)
 find_package(OpenSSL REQUIRED)
 find_package(Boost REQUIRED context)
 
-include_directories(${CURL_INCLUDE_DIRS} ${OPENSSL_INCLUDE_DIR} )
+include_directories(${CURL_INCLUDE_DIRS} ${MYSQL_INCLUDE_DIR})
 
-set(LIBS  ${CURL_LIBRARIES} 
+set(LIBS  ${CURL_LIBRARIES} libmariadb
           ${Boost_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT}
           ${OPENSSL_LIBRARIES})
 
@@ -43,6 +45,8 @@ set(LIBS  ${CURL_LIBRARIES}
 include_directories(
     third_party/lithium/single_headers
     third_party/rapidjson/include
+    third_party/mariadb-connector-c/include
+    ${CMAKE_BINARY_DIR}/third_party/mariadb-connector-c/include    
 )
 
 #add_custom_target(symbols_generation COMMAND li_symbol_generator ${CMAKE_CURRENT_SOURCE_DIR})

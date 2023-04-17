@@ -39,7 +39,8 @@ namespace model {
 		if(!mGdtEntries.size()) compareEntries = false;
 		int addedOrUpdatedCount = 0;
 		float calculateGdtSum = 0.0;
-		for (auto& gdtEntry : gdtEntryList["gdtEntries"].GetArray()) {
+		for (auto& gdtEntry : gdtEntryList["gdtEntries"].GetArray()) 
+		{
 			GdtEntry entry(gdtEntry);
 			if(it == mGdtEntries.end()) {
 				compareEntries = false;
@@ -52,6 +53,13 @@ namespace model {
 				mGdtEntries.push_back(gdtEntry);
 				addedOrUpdatedCount++;
 			} else {
+				while(it->getDate() < entry.getDate()) {
+					it++;
+					if(it == mGdtEntries.end()) {
+						addedOrUpdatedCount++;	
+						it = mGdtEntries.insert(it, entry);
+					}
+				}
 				if(*it != entry) {
 					addedOrUpdatedCount++;
 					// update, replace with updated element
@@ -76,6 +84,13 @@ namespace model {
 		}
 		mLastUpdate = std::time(nullptr);
 		return addedOrUpdatedCount;
+	}
+	void GdtEntryList::addGdtEntry(GdtEntry gdtEntry)
+	{
+		mTotalCount++;
+		mTotalGDTSum += gdtEntry.getGdt();
+		mGdtEntries.push_back(gdtEntry);
+		mLastUpdate = std::time(nullptr);
 	}
 
 	Value GdtEntryList::toJson(rapidjson::Document::AllocatorType& alloc)

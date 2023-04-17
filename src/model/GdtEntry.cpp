@@ -4,6 +4,7 @@
 
 using namespace rapidjson;
 using namespace rapidjson_helper;
+using namespace std;
 
 namespace model {
 	
@@ -57,6 +58,15 @@ namespace model {
 		mGDT = gdtEntry["gdt"].GetFloat();			
 	}
 
+	GdtEntry::GdtEntry(Tuple tuple)
+	 : mId(get<0>(tuple)), mAmount((double)get<1>(tuple)/100.0), mDate(get<2>(tuple)), mEmail(get<3>(tuple)),
+	   mComment(getFullComment(tuple)), mCouponCode(get<7>(tuple)), 
+	   mGdtEntryType((GdtEntryType)get<8>(tuple)), mFactor(get<9>(tuple)), mAmount2((float)get<10>(tuple)/100.0f), 
+	   mFactor2(get<11>(tuple)), mGDT(0.0)
+	{
+		mGDT = mAmount * mFactor * mFactor2 + mAmount2;
+	}
+
 	GdtEntry::~GdtEntry()
 	{
 
@@ -94,7 +104,7 @@ namespace model {
         float               mFactor2;
         float				mGDT; // resulting gdt
 	*/
-	bool GdtEntry::operator== (const GdtEntry& b)
+	bool GdtEntry::operator== (const GdtEntry& b) const
 	{
 		return 
 			mId == b.mId && 
@@ -109,5 +119,22 @@ namespace model {
 			mFactor2 == b.mFactor2 &&
 			mGDT == b.mGDT
 			;
+	}
+
+	std::string GdtEntry::getFullComment(Tuple tuple)
+	{
+		auto comment = get<4>(tuple), source = get<5>(tuple), project = get<6>(tuple);
+		// &#8210; = langer Gedankenstrich
+		std::string fullComment = comment;
+        if(source.size()) {
+			if(fullComment.size()) fullComment += " – ";
+			fullComment += source;
+		}
+		if(project.size()) {
+			if(fullComment.size()) fullComment += " – ";
+			fullComment += project;
+		}
+        
+        return fullComment;
 	}
 }
