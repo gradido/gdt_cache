@@ -40,7 +40,9 @@ namespace controller
         }        
         for(const auto& entry: gdtEntriesList->getGdtEntries()) 
         {
-            auto emailIndex = emailIndexMap.find(entry.getEmail())->second;
+            auto it = emailIndexMap.find(entry.getEmail());
+            if(it == emailIndexMap.end()) continue;
+            auto emailIndex = it->second;
             // check for global mod
             for(int iGlobalMod = 0; iGlobalMod < mGlobalMods.size(); iGlobalMod++) {
                 auto globalMod = mGlobalMods[iGlobalMod];
