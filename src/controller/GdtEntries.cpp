@@ -101,7 +101,8 @@ namespace controller
         Profiler timeUsed;
         mGlobalMods.clear();
         mGlobalModCheckMatrixBuffer.clear();
-        auto rows = connection("select id, UNIX_TIMESTAMP(start_date), UNIX_TIMESTAMP(end_date) from global_modificators where end_date < now()");
+
+        auto rows = connection("select id, IFNULL(UNIX_TIMESTAMP(start_date),946681200), UNIX_TIMESTAMP(end_date) from global_modificators where end_date < now()");
         rows.map([&](int id, std::time_t startDate, std::time_t endDate) {
             mGlobalMods.push_back(model::GlobalModificator(id, startDate, endDate));
             mGlobalModCheckMatrixBuffer.push_back(std::vector<uint8_t>());
