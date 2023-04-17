@@ -13,7 +13,7 @@ namespace model {
 	GdtEntryList::GdtEntryList(Value& gdtEntryList)
 		: mTotalCount(0), mTotalGDTSum(0.0f)
 	{
-		updateGdtEntries(gdtEntryList);
+		addGdtEntry(gdtEntryList);
 	}
 
 	GdtEntryList::GdtEntryList()
@@ -26,64 +26,41 @@ namespace model {
 
 	}
 
-	int GdtEntryList::updateGdtEntries(Value& gdtEntryList, std::set<std::string>* emails/*= nullptr*/)
+	int GdtEntryList::addGdtEntry(Value& gdtEntryList, std::set<std::string>* emails/*= nullptr*/)
 	{
 		checkMember(gdtEntryList, "count", MemberType::INTEGER);
 		checkMember(gdtEntryList, "gdtEntries", MemberType::ARRAY);
 		checkMember(gdtEntryList, "gdtSum", MemberType::NUMBER);
-		
+				
 		mTotalCount = gdtEntryList["count"].GetInt();
 		mTotalGDTSum = gdtEntryList["gdtSum"].GetFloat();
-		auto it = mGdtEntries.begin();
-		bool compareEntries = true;
-		if(!mGdtEntries.size()) compareEntries = false;
-		int addedOrUpdatedCount = 0;
-		float calculateGdtSum = 0.0;
+		int dataSetSize = gdtEntryList["gdtEntries"].GetArray().Size();
+		
+		double calculateGdtSum = 0.0;
+
 		for (auto& gdtEntry : gdtEntryList["gdtEntries"].GetArray()) 
 		{
 			GdtEntry entry(gdtEntry);
-			if(it == mGdtEntries.end()) {
-				compareEntries = false;
-			}
 			calculateGdtSum += entry.getGdt();
+			mGdtEntries.push_back(entry);
+		
 			if(emails) {
 				emails->insert(entry.getEmail());
 			}
-			if(!compareEntries) {
-				mGdtEntries.push_back(gdtEntry);
-				addedOrUpdatedCount++;
-			} else {
-				while(it->getDate() < entry.getDate()) {
-					it++;
-					if(it == mGdtEntries.end()) {
-						addedOrUpdatedCount++;	
-						it = mGdtEntries.insert(it, entry);
-					}
-				}
-				if(*it != entry) {
-					addedOrUpdatedCount++;
-					// update, replace with updated element
-					if(it->getId() == entry.getId()) {
-						it = mGdtEntries.erase(it);
-						it = mGdtEntries.insert(it, entry);
-						// new element
-					} else {
-						it = mGdtEntries.insert(it, entry);
-					}
-				}
-				it++;
+		}
+		// TODO: replace 50 by macro or config value
+		if(dataSetSize != 50) {
+			if(mTotalCount != mGdtEntries.size()) {
+				fprintf(stderr, "[%s] count mismatch total count: %d != gdtEntries list size: %ld\n",
+					__FUNCTION__, mTotalCount, mGdtEntries.size());
+			}
+			if(fabs(calculateGdtSum - mTotalGDTSum) > 0.01) {
+				fprintf(stderr, "[%s] gdt sum mismatch total gdt sum: %.4f != calculated gdt sum: %.4f\n",
+					__FUNCTION__, mTotalGDTSum, calculateGdtSum);
 			}
 		}
-		if(mTotalCount != mGdtEntries.size()) {
-			fprintf(stderr, "[%s] count mismatch total count: %d != gdtEntries list size: %ld\n",
-			 	__FUNCTION__, mTotalCount, mGdtEntries.size());
-		}
-		if(fabs(calculateGdtSum - mTotalGDTSum) > 0.01f) {
-			fprintf(stderr, "[%s] gdt sum mismatch total gdt sum: %.4f != calculated gdt sum: %.4f\n",
-				__FUNCTION__, mTotalGDTSum, calculateGdtSum);
-		}
 		mLastUpdate = std::time(nullptr);
-		return addedOrUpdatedCount;
+		return dataSetSize;
 	}
 	void GdtEntryList::addGdtEntry(GdtEntry gdtEntry)
 	{

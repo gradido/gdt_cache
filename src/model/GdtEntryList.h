@@ -24,10 +24,10 @@ namespace model {
 		GdtEntryList();
 		~GdtEntryList();
 
-		
-		//! \return added gdt entries count
+
+		inline void reset() {mGdtEntries.clear(); mTotalCount = 0; mTotalGDTSum = 0.0;};
 		//! \param emails point to set if you like to know which email addresses are present in gdt entries
-		int updateGdtEntries(rapidjson::Value& gdtEntryList, std::set<std::string>* emails = nullptr);
+		int addGdtEntry(rapidjson::Value& gdtEntryList, std::set<std::string>* emails = nullptr);
 
 		//! add gdt entry from db read, one after another
 		void addGdtEntry(GdtEntry gdtEntry);
@@ -57,7 +57,7 @@ namespace model {
 	protected:
 		int mTotalCount;
 		std::list<GdtEntry> mGdtEntries;
-		float mTotalGDTSum;
+		double mTotalGDTSum;
 		std::time_t mLastUpdate;
 	};
 }

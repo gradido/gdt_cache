@@ -99,7 +99,7 @@ bool GdtEntriesCache::initializeFromPhp()
             try {
                 auto json = _listPerEmailApi(email, page, 50, model::GdtEntryList::OrderDirections::ASC);
                 page++;
-                auto updatedCount = gdtEntries->updateGdtEntries(json);
+                auto updatedCount = gdtEntries->addGdtEntry(json);
                 printf("[%s] time for %d added gdt entries: %s\n", __FUNCTION__, updatedCount, timePerCall.string().data());
             } catch(RapidjsonParseErrorException& ex) {
                 auto errorString = ex.getFullString();
@@ -164,7 +164,7 @@ bool GdtEntriesCache::initializeFromDb()
     auto rows = dbSession(
         "select id, amount, UNIX_TIMESTAMP(date), LOWER(TRIM(email)), IFNULL(comment, ''), \
             IFNULL(source, ''), IFNULL(project, ''), IFNULL(coupon_code, ''), \
-            gdt_entry_type_id, factor, amount2, factor2 from gdt_entries order by date ASC, id ASC"
+            gdt_entry_type_id, factor, amount2, factor2 from gdt_entries order by date ASC"
     );
     while(auto row = rows.read_optional
     <int, long long, int, std::string, std::string, std::string, std::string, std::string, int, float, int, float>()) 
@@ -190,14 +190,16 @@ bool GdtEntriesCache::initializeFromDb()
         auto gdtEntriesList = gdtEntriesPerEmail.find(email)->second;
         if(gdtEntries.checkForMissingGlobalMod(customer.second, gdtEntriesPerEmail.find(email)->second)) {
             // if global mod is missing, let gdt server calculate new one with request
+            gdtEntriesList->reset();
             int page = 1;
             do {
                 Profiler timePerCall;
                 try {
                     auto json = _listPerEmailApi(email, page, 50, model::GdtEntryList::OrderDirections::ASC);
                     page++;
-                    auto updatedCount = gdtEntriesList->updateGdtEntries(json);
-                    printf("[%s] time for %d updated gdt entries (global mod): %s\n", __FUNCTION__, updatedCount, timePerCall.string().data());
+                    auto dataSetSize = gdtEntriesList->addGdtEntry(json);
+                    printf("[%s] time for %d updated gdt entries (global mod): %s\n", 
+                        __FUNCTION__, dataSetSize, timePerCall.string().data());
                 } catch(RapidjsonParseErrorException& ex) {
                     auto errorString = ex.getFullString();
                     if(errorString.size() > 100) {

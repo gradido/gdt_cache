@@ -42,7 +42,7 @@ namespace controller
             for(int iGlobalMod = 0; iGlobalMod < mGlobalMods.size(); iGlobalMod++) {
                 auto globalMod = mGlobalMods[iGlobalMod];
                 if(mGlobalModCheckMatrixBuffer[iGlobalMod][emailIndex] < 2) {
-                    if(entry.getDate() > globalMod.getStartDate() && entry.getDate() < globalMod.getEndDate()) {
+                    if(entry.getDate() > globalMod.getStartDate() && entry.getDate() <= globalMod.getEndDate()) {
                         switch(entry.getGdtEntryType()) 
                         {
                             // normal 1
@@ -79,8 +79,10 @@ namespace controller
                     // good
                     //if(matrixValue == 3 || matrixValue == 0 || matrixValue == 12 || matrixValue == 15) {
                     // bad
-                    if(matrixValue & 1 == 1 || matrixValue & 4 == 4) {
+                    if((matrixValue & 3) == 1 || (matrixValue & 12) == 4) {
                         findMissingGlobalMod = true;
+                        printf("[%s] find missing global mod, matrix value: %d, email: %s, global mod: %s\n", 
+                            __FUNCTION__, matrixValue, aEmails[iEmail].data(), mGlobalMods[iGlobalMod].getName().data());
                         break;
                     }
                 }
@@ -102,9 +104,9 @@ namespace controller
         mGlobalMods.clear();
         mGlobalModCheckMatrixBuffer.clear();
 
-        auto rows = connection("select id, IFNULL(UNIX_TIMESTAMP(start_date),946681200), UNIX_TIMESTAMP(end_date) from global_modificators where end_date < now()");
-        rows.map([&](int id, std::time_t startDate, std::time_t endDate) {
-            mGlobalMods.push_back(model::GlobalModificator(id, startDate, endDate));
+        auto rows = connection("select id, name, IFNULL(UNIX_TIMESTAMP(start_date),946681200), UNIX_TIMESTAMP(end_date) from global_modificators where end_date < now()");
+        rows.map([&](int id, std::string name, std::time_t startDate, std::time_t endDate) {
+            mGlobalMods.push_back(model::GlobalModificator(id, name, startDate, endDate));
             mGlobalModCheckMatrixBuffer.push_back(std::vector<uint8_t>());
         });
         printf("[%s] time for loading global modificators: %s\n", __FUNCTION__, timeUsed.string().data());

@@ -11,18 +11,22 @@
 */
 
 #include <ctime>
+#include <string>
 
 namespace model {
     class GlobalModificator
     {
     public:
-        GlobalModificator(int id, std::time_t startDate, std::time_t endDate);
+        GlobalModificator(int id, const std::string& name, std::time_t startDate, std::time_t endDate);
         inline std::time_t getStartDate() const {return mStartDate;}
         inline std::time_t getEndDate() const {return mEndDate;}
+        inline const std::string& getName() const {return mName;}
     protected:
         int mId;
+        std::string mName;
         std::time_t mStartDate;
         std::time_t mEndDate;
+
     };
 }
 
