@@ -1,6 +1,9 @@
 #include "GdtEntries.h"
 #include "../lib/Profiler.h"
 
+#include "rapidjson/prettywriter.h"
+#include "rapidjson/stringbuffer.h"
+
 namespace controller
 {
     GdtEntries::GdtEntries()
@@ -32,8 +35,8 @@ namespace controller
         // 8 for at least one 'staff wage global mod' gdt entry in global mod range
         
         for(int i = 0; i < mGlobalMods.size(); i++) {
-            mGlobalModCheckMatrixBuffer[i].clear();
-            mGlobalModCheckMatrixBuffer[i].insert(mGlobalModCheckMatrixBuffer[i].begin(), aEmails.size(), 0);
+            mGlobalModCheckMatrixBuffer[i].reserve(aEmails.size());
+            memset(mGlobalModCheckMatrixBuffer[i].data(), 0, aEmails.size() * sizeof(uint8_t));
         }        
         for(const auto& entry: gdtEntriesList->getGdtEntries()) 
         {
@@ -83,6 +86,14 @@ namespace controller
                         findMissingGlobalMod = true;
                         printf("[%s] find missing global mod, matrix value: %d, email: %s, global mod: %s\n", 
                             __FUNCTION__, matrixValue, aEmails[iEmail].data(), mGlobalMods[iGlobalMod].getName().data());
+                        /*rapidjson::Document base;
+                        auto json = gdtEntriesList->toJson(base.GetAllocator());
+                        rapidjson::StringBuffer s;
+                        rapidjson::PrettyWriter<rapidjson::StringBuffer> writer(s);    
+                        json.Accept(writer);
+
+                        printf(s.GetString());
+*/
                         break;
                     }
                 }

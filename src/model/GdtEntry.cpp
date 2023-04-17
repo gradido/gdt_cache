@@ -19,6 +19,8 @@ namespace model {
 		case GdtEntryType::DIGISTORE: return "DIGISTORE";
 		case GdtEntryType::CVS2: return "CVS2";
 		case GdtEntryType::GLOBAL_MODIFICATOR: return "GLOBAL_MODIFICATOR";
+		case GdtEntryType::CVS_STAFF_WAGE: return "STAFF_WAGES";
+		case GdtEntryType::STAFF_WAGE_GLOBAL_MODIFICATOR: return "STAFF_WAGES_GLOBAL_MODIFICATOR";
 		default: throw GradidoUnknownEnumException("unknown enum value in model::graphql::GdtEntry", "GdtEntryType", static_cast<int>(type));
 		}
 	}

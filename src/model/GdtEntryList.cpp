@@ -48,8 +48,8 @@ namespace model {
 				emails->insert(entry.getEmail());
 			}
 		}
-		// TODO: replace 50 by macro or config value
-		if(dataSetSize != 50) {
+		// TODO: replace 40 by macro or config value
+		if(dataSetSize != 200) {
 			if(mTotalCount != mGdtEntries.size()) {
 				fprintf(stderr, "[%s] count mismatch total count: %d != gdtEntries list size: %ld\n",
 					__FUNCTION__, mTotalCount, mGdtEntries.size());

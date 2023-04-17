@@ -195,11 +195,14 @@ bool GdtEntriesCache::initializeFromDb()
             do {
                 Profiler timePerCall;
                 try {
-                    auto json = _listPerEmailApi(email, page, 50, model::GdtEntryList::OrderDirections::ASC);
+                    auto json = _listPerEmailApi(email, page, 200, model::GdtEntryList::OrderDirections::ASC);
                     page++;
                     auto dataSetSize = gdtEntriesList->addGdtEntry(json);
                     printf("[%s] time for %d updated gdt entries (global mod): %s\n", 
                         __FUNCTION__, dataSetSize, timePerCall.string().data());
+                    if(timePerCall.seconds() > 5) {
+                        std::this_thread::sleep_for(1s);
+                    }
                 } catch(RapidjsonParseErrorException& ex) {
                     auto errorString = ex.getFullString();
                     if(errorString.size() > 100) {
