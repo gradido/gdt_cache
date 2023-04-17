@@ -46,32 +46,31 @@ namespace controller
             // check for global mod
             for(int iGlobalMod = 0; iGlobalMod < mGlobalMods.size(); iGlobalMod++) {
                 auto globalMod = mGlobalMods[iGlobalMod];
-                if(mGlobalModCheckMatrixBuffer[iGlobalMod][emailIndex] < 2) {
-                    if(entry.getDate() > globalMod.getStartDate() && entry.getDate() <= globalMod.getEndDate()) {
-                        switch(entry.getGdtEntryType()) 
-                        {
-                            // normal 1
-                        case model::GdtEntry::GdtEntryType::FORM:
-                        case model::GdtEntry::GdtEntryType::CVS:
-                        case model::GdtEntry::GdtEntryType::ELOPAGE:
-                        case model::GdtEntry::GdtEntryType::ELOPAGE_PUBLISHER:
-                        case model::GdtEntry::GdtEntryType::DIGISTORE:
-                        case model::GdtEntry::GdtEntryType::CVS2: 
-                            mGlobalModCheckMatrixBuffer[iGlobalMod][emailIndex] |= 1;
-                            break;
-                            // normal global mod 2
-                        case model::GdtEntry::GdtEntryType::GLOBAL_MODIFICATOR:
-                            mGlobalModCheckMatrixBuffer[iGlobalMod][emailIndex] |= 2;
-                            break;
-                            // staff wage 4
-                        case model::GdtEntry::GdtEntryType::CVS_STAFF_WAGE:
-                            mGlobalModCheckMatrixBuffer[iGlobalMod][emailIndex] |= 4;
-                            break;
-                            // staff wage global mod 8
-                        case model::GdtEntry::GdtEntryType::STAFF_WAGE_GLOBAL_MODIFICATOR:
-                            mGlobalModCheckMatrixBuffer[iGlobalMod][emailIndex] |= 8;
-                            break;
-                        }
+                
+                if(entry.getDate() > globalMod.getStartDate() && entry.getDate() <= globalMod.getEndDate()) {
+                    switch(entry.getGdtEntryType()) 
+                    {
+                        // normal 1
+                    case model::GdtEntry::GdtEntryType::FORM:
+                    case model::GdtEntry::GdtEntryType::CVS:
+                    case model::GdtEntry::GdtEntryType::ELOPAGE:
+                    case model::GdtEntry::GdtEntryType::ELOPAGE_PUBLISHER:
+                    case model::GdtEntry::GdtEntryType::DIGISTORE:
+                    case model::GdtEntry::GdtEntryType::CVS2: 
+                        mGlobalModCheckMatrixBuffer[iGlobalMod][emailIndex] |= 1;
+                        break;
+                        // normal global mod 2
+                    case model::GdtEntry::GdtEntryType::GLOBAL_MODIFICATOR:
+                        mGlobalModCheckMatrixBuffer[iGlobalMod][emailIndex] |= 2;
+                        break;
+                        // staff wage 4
+                    case model::GdtEntry::GdtEntryType::CVS_STAFF_WAGE:
+                        mGlobalModCheckMatrixBuffer[iGlobalMod][emailIndex] |= 4;
+                        break;
+                        // staff wage global mod 8
+                    case model::GdtEntry::GdtEntryType::STAFF_WAGE_GLOBAL_MODIFICATOR:
+                        mGlobalModCheckMatrixBuffer[iGlobalMod][emailIndex] |= 8;
+                        break;
                     }
                 }
             }
@@ -123,5 +122,15 @@ namespace controller
             mGlobalModCheckMatrixBuffer.push_back(std::vector<uint8_t>());
         });
         printf("[%s] time for loading global modificators: %s\n", __FUNCTION__, timeUsed.string().data());
+
+       /* timeUsed.reset();
+        auto rows = connection("select gdt_entry_id, global_modificator_id, email from gdt_modificator_entries");
+        int count = 0;
+        rows.map([&](int gdtEntryId, int globalModificatorId, std::string email) {
+            count++;
+        });
+        printf("[%s] time for loading %d global modificator entries: %s\n",
+            __FUNCTION__, count, timeUsed.string().data());
+            */
     }
 } // namespace controller
