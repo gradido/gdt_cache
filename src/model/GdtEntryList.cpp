@@ -62,7 +62,7 @@ namespace model {
 		mLastUpdate = std::time(nullptr);
 		return dataSetSize;
 	}
-	void GdtEntryList::addGdtEntry(GdtEntry gdtEntry)
+	void GdtEntryList::addGdtEntry(const GdtEntry& gdtEntry)
 	{
 		mTotalCount++;
 		mTotalGDTSum += gdtEntry.getGdt();
@@ -71,6 +71,67 @@ namespace model {
 		}
 		mGdtEntries.push_back(gdtEntry);
 		mLastUpdate = std::time(nullptr);
+	}
+
+	void GdtEntryList::insertGdtEntry(const GdtEntry& gdtEntry)
+	{
+		mTotalCount++;
+		mTotalGDTSum += gdtEntry.getGdt();
+		if(!mGdtEntries.size() || mGdtEntries.back().getDate() <= gdtEntry.getDate()) {
+			mGdtEntries.push_back(gdtEntry);
+		} else {
+			for(auto it = mGdtEntries.begin(); it != mGdtEntries.end(); it++) {
+				if(it->getDate() >= gdtEntry.getDate()) {
+					mGdtEntries.insert(it, gdtEntry);
+					break;
+				}
+			}
+		}
+	}
+
+	void GdtEntryList::calculateAndInsertGlobalModificatorEntry(
+		const GlobalModificator& globalMod, 
+		const std::string& email,
+		li::mysql_connection<li::mysql_functions_blocking> connection
+	)
+	{
+		if(!mGdtEntries.size()) return;
+		long long gdtSum = 0;
+		auto it = mGdtEntries.begin();
+		for(; it != mGdtEntries.end(); it++) {
+			if(it->getEmail() != email) continue;
+			if(it->getDate() >= globalMod.getStartDate() && it->getDate() <= globalMod.getEndDate()) {
+				gdtSum += it->calculateGdt();
+			}
+			if(it->getDate() > globalMod.getEndDate()) {
+				break;
+			}
+		}
+
+		auto prepared = connection.prepare(
+			"INSERT INTO gdt_entries(email, gdt_entry_type_id, amount, factor, date, project) \
+			 VALUES(?,?,?,?,FROM_UNIXTIME(?),?)"
+		);
+		long long integerGdtSum = static_cast<long long>(round(gdtSum* 100.0));
+		prepared(
+			email, 7, gdtSum, 
+			globalMod.getFactor(), static_cast<long long>(globalMod.getEndDate()), 
+			globalMod.getName()
+		);
+		auto id = connection("SELECT LAST_INSERT_ID()").read<int>();
+		auto prepared2 = connection.prepare(
+			"INSERT INTO gdt_modificator_entries(gdt_entry_id, global_modificator_id, email) \
+			 VALUES(?,?,?)"
+		);
+		prepared2(id, globalMod.getId(), email);
+
+		// typedef std::tuple<int, long long, std::time_t, std::string, std::string, std::string, std::string, std::string, int, float, long long, float> Tuple;
+		// id, amount, date, email, comment, source, project, coupon_code, gdt_entry_type_id, factor, amount2, factor2
+		GdtEntry globalModGdtEntry({
+			id, gdtSum, globalMod.getEndDate(), email,"", "", globalMod.getName(), "", 7, globalMod.getFactor(),0, 1.0
+		});
+		// todo: maybe optimize in future to save memory using reference instead of copy
+		insertGdtEntry(globalModGdtEntry);
 	}
 
 	Value GdtEntryList::toJson(rapidjson::Document::AllocatorType& alloc)

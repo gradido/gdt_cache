@@ -19,12 +19,16 @@ namespace controller
         void loadGlobalModificators(li::mysql_connection<li::mysql_functions_blocking> connection);
 
         // run only one at a time, reuse buffer 
-        bool checkForMissingGlobalMod(
+        int checkForMissingGlobalMod(
             std::shared_ptr<model::Customer> customer,
-            std::shared_ptr<model::GdtEntryList> gdtEntries
+            std::shared_ptr<model::GdtEntryList> gdtEntries,
+            li::mysql_connection<li::mysql_functions_blocking> connection
         );
 
     protected:
+        // calculate global mod, insert into gdt entry list 
+        void calculateGlobalMod(model::GlobalModificator, std::shared_ptr<model::GdtEntryList> gdtEntries);
+
         std::vector<model::GlobalModificator> mGlobalMods;
         std::vector<std::vector<uint8_t>> mGlobalModCheckMatrixBuffer;
     };

@@ -4,6 +4,8 @@
 #include "GdtEntry.h"
 
 #include "../lib/Profiler.h"
+#include "GlobalModificator.h"
+#include <lithium_mysql.hh>
 #include <list>
 #include <set>
 #include <ctime>
@@ -30,7 +32,17 @@ namespace model {
 		int addGdtEntry(rapidjson::Value& gdtEntryList, std::set<std::string>* emails = nullptr);
 
 		//! add gdt entry from db read, one after another
-		void addGdtEntry(GdtEntry gdtEntry);
+		void addGdtEntry(const GdtEntry& gdtEntry);
+
+		//! compare dates and insert where it is in order
+		void insertGdtEntry(const GdtEntry& gdtEntry);
+
+		//! calculate global mod and return new gdt entry, new gdt entry is inserted 
+		void calculateAndInsertGlobalModificatorEntry(
+			const GlobalModificator& globalMod, 
+			const std::string& email,
+			li::mysql_connection<li::mysql_functions_blocking> connection
+		);
 
 		rapidjson::Value toJson(rapidjson::Document::AllocatorType& alloc);
 		rapidjson::Value toJson(rapidjson::Document::AllocatorType& alloc, Profiler timeUsed);
@@ -56,6 +68,7 @@ namespace model {
 		// update with new data
 	protected:
 		int mTotalCount;
+		// TODO: use shared_ptr for GdtEntry in list
 		std::list<GdtEntry> mGdtEntries;
 		double mTotalGDTSum;
 		std::time_t mLastUpdate;

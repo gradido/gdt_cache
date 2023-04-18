@@ -25,7 +25,7 @@ namespace model {
 
         static const char* getGdtEntryTypeString(GdtEntryType type);
 
-        typedef std::tuple<int, long long, std::time_t, std::string, std::string, std::string, std::string, std::string, int, float, int, float> Tuple;
+        typedef std::tuple<int, long long, std::time_t, std::string, std::string, std::string, std::string, std::string, int, float, long long, float> Tuple;
 
         GdtEntry(rapidjson::Value& gdtEntry);
         GdtEntry(Tuple tuple);
@@ -41,6 +41,8 @@ namespace model {
 
         inline int getId() const {return mId;}
         inline double getGdt() const {return mGDT;}
+        inline long long calculateGdt() const {return mAmount * mFactor * mFactor2 + mAmount2;}
+        inline long long getAmount() const {return mAmount;}
         inline const std::string& getEmail() const { return mEmail;}
         inline std::time_t getDate() const {return mDate;}
         inline GdtEntryType getGdtEntryType() const {return mGdtEntryType;}
@@ -49,7 +51,7 @@ namespace model {
         std::string getFullComment(Tuple tuple);
 
         int					mId;
-        double				mAmount; // normal euro sum
+        long long			mAmount; // normal euro sum
         std::string			mDateString;
         std::time_t         mDate;
         std::string         mEmail;
@@ -57,7 +59,7 @@ namespace model {
         std::string         mCouponCode;
         GdtEntryType		mGdtEntryType;
         float				mFactor;
-        float               mAmount2;
+        long long           mAmount2;
         float               mFactor2;
         double				mGDT; // resulting gdt
 

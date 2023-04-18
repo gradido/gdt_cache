@@ -16,9 +16,10 @@ namespace controller
 
     }
 
-    bool GdtEntries::checkForMissingGlobalMod(
+    int GdtEntries::checkForMissingGlobalMod(
         std::shared_ptr<model::Customer> customer,
-        std::shared_ptr<model::GdtEntryList> gdtEntriesList
+        std::shared_ptr<model::GdtEntryList> gdtEntriesList,
+        li::mysql_connection<li::mysql_functions_blocking> connection
     )
     {
         Profiler timeUsed;
@@ -73,7 +74,7 @@ namespace controller
             }
             //printf("\n");
         }
-        bool findMissingGlobalMod = false;
+        int createMissingGlobalMod = 0;
         if(gdtEntriesList->getTotalCount() > 0) {
             for(int iGlobalMod = 0; iGlobalMod < mGlobalMods.size(); iGlobalMod++) {
                 for(int iEmail = 0; iEmail < aEmails.size(); iEmail++) {
@@ -82,9 +83,13 @@ namespace controller
                     //if(matrixValue == 3 || matrixValue == 0) {
                     // bad
                     if((matrixValue & 3) == 1) {
-                        findMissingGlobalMod = true;
-                        printf("[%s] find missing global mod, matrix value: %d, email: %s, global mod: %s\n", 
-                            __FUNCTION__, matrixValue, aEmails[iEmail].data(), mGlobalMods[iGlobalMod].getName().data());
+                        Profiler timeUsedNewMod;
+                        gdtEntriesList->calculateAndInsertGlobalModificatorEntry(mGlobalMods[iGlobalMod], aEmails[iEmail], connection);
+                        createMissingGlobalMod++;
+                        //printf("[%s] time for adding new global mod gdt entry: %s\n", __FUNCTION__, timeUsedNewMod.string().data());
+                        //findMissingGlobalMod = true;
+                        //printf("[%s] find missing global mod, matrix value: %d, email: %s, global mod: %s\n", 
+                          //  __FUNCTION__, matrixValue, aEmails[iEmail].data(), mGlobalMods[iGlobalMod].getName().data());
                         /*rapidjson::Document base;
                         auto json = gdtEntriesList->toJson(base.GetAllocator());
                         rapidjson::StringBuffer s;
@@ -96,7 +101,6 @@ namespace controller
                         break;
                     }
                 }
-                if(findMissingGlobalMod) break;
             }
         }
         
@@ -104,7 +108,7 @@ namespace controller
 /*      printf("[%s] time for checking for global mod from %s: %s\n", 
             __FUNCTION__, customer->getEmails().front().data(), timeUsed.string().data()
         );*/
-        return findMissingGlobalMod;
+        return createMissingGlobalMod;
         
     }
 
@@ -114,9 +118,11 @@ namespace controller
         mGlobalMods.clear();
         mGlobalModCheckMatrixBuffer.clear();
 
-        auto rows = connection("select id, name, IFNULL(UNIX_TIMESTAMP(start_date),946681200), UNIX_TIMESTAMP(end_date) from global_modificators where end_date < now()");
-        rows.map([&](int id, std::string name, std::time_t startDate, std::time_t endDate) {
-            mGlobalMods.push_back(model::GlobalModificator(id, name, startDate, endDate));
+        auto rows = connection(
+            "select id, name, factor, IFNULL(UNIX_TIMESTAMP(start_date),946681200), UNIX_TIMESTAMP(end_date) \
+             from global_modificators where end_date < now() order by end_date ASC");
+        rows.map([&](int id, std::string name, float factor, std::time_t startDate, std::time_t endDate) {
+            mGlobalMods.push_back(model::GlobalModificator(id, name,factor, startDate, endDate));
             mGlobalModCheckMatrixBuffer.push_back(std::vector<uint8_t>());
         });
         printf("[%s] time for loading global modificators: %s\n", __FUNCTION__, timeUsed.string().data());

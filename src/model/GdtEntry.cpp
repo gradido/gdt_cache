@@ -1,6 +1,7 @@
 #include "GdtEntry.h"
 #include "../GradidoBlockchainException.h"
 #include "../lib/RapidjsonHelper.h"
+#include <math.h>
 
 using namespace rapidjson;
 using namespace rapidjson_helper;
@@ -26,7 +27,7 @@ namespace model {
 	}
 
 	GdtEntry::GdtEntry(Value& gdtEntry)
-		: mId(0), mAmount(0.0f), mGdtEntryType(GdtEntryType::FORM), mFactor(0.0f), mGDT(0.0f)
+		: mId(0), mAmount(0), mGdtEntryType(GdtEntryType::FORM), mFactor(0.0f), mAmount2(0), mGDT(0.0f)
 	{
 		checkMember(gdtEntry, "id", MemberType::INTEGER);
 		checkMember(gdtEntry, "amount", MemberType::NUMBER);
@@ -41,7 +42,7 @@ namespace model {
 		checkMember(gdtEntry, "gdt", MemberType::NUMBER);			
 
 		mId = gdtEntry["id"].GetInt();
-		mAmount = gdtEntry["amount"].GetFloat();
+		mAmount = static_cast<long long>(round(gdtEntry["amount"].GetDouble() * 100.0));
 		mDateString = gdtEntry["date"].GetString();
 		mEmail = gdtEntry["email"].GetString();
 		mComment = gdtEntry["comment"].GetString();
@@ -55,18 +56,18 @@ namespace model {
 		mGdtEntryType = static_cast<GdtEntryType>(gdtEntryTypeId);
 
 		mFactor = gdtEntry["factor"].GetFloat();
-		mAmount2 = gdtEntry["amount2"].GetFloat();
+		mAmount2 = static_cast<long long>(round(gdtEntry["amount2"].GetDouble() * 100.0));
 		mFactor2 = gdtEntry["factor2"].GetFloat();
 		mGDT = gdtEntry["gdt"].GetFloat();			
 	}
 
 	GdtEntry::GdtEntry(Tuple tuple)
-	 : mId(get<0>(tuple)), mAmount((double)get<1>(tuple)/100.0), mDate(get<2>(tuple)), mEmail(get<3>(tuple)),
+	 : mId(get<0>(tuple)), mAmount(get<1>(tuple)), mDate(get<2>(tuple)), mEmail(get<3>(tuple)),
 	   mComment(getFullComment(tuple)), mCouponCode(get<7>(tuple)), 
-	   mGdtEntryType((GdtEntryType)get<8>(tuple)), mFactor(get<9>(tuple)), mAmount2((float)get<10>(tuple)/100.0f), 
+	   mGdtEntryType((GdtEntryType)get<8>(tuple)), mFactor(get<9>(tuple)), mAmount2(get<10>(tuple)), 
 	   mFactor2(get<11>(tuple)), mGDT(0.0)
 	{
-		mGDT = mAmount * mFactor * mFactor2 + mAmount2;
+		mGDT = (mAmount * mFactor * mFactor2 + mAmount2) / 100.0;
 	}
 
 	GdtEntry::~GdtEntry()
@@ -79,14 +80,14 @@ namespace model {
 		Value gdtEntry(kObjectType);
 
 		gdtEntry.AddMember("id", mId, alloc);
-		gdtEntry.AddMember("amount", mAmount, alloc);
+		gdtEntry.AddMember("amount", static_cast<double>(mAmount) / 100.0, alloc);
 		gdtEntry.AddMember("date", Value(mDateString.data(), alloc), alloc);
 		gdtEntry.AddMember("email", Value(mEmail.data(), alloc), alloc);
 		gdtEntry.AddMember("comment", Value(mComment.data(), alloc), alloc);
 		gdtEntry.AddMember("coupon_code", Value(mCouponCode.data(), alloc), alloc);
 		gdtEntry.AddMember("gdt_entry_type_id", Value(getGdtEntryTypeString(mGdtEntryType), alloc), alloc);
 		gdtEntry.AddMember("factor", mFactor, alloc);
-		gdtEntry.AddMember("amount2", mAmount2, alloc);
+		gdtEntry.AddMember("amount2", static_cast<double>(mAmount2) / 100.0, alloc);
 		gdtEntry.AddMember("factor2", mFactor2, alloc);
 		gdtEntry.AddMember("gdt", mGDT, alloc);
 

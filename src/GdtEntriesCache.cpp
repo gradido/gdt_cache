@@ -183,13 +183,17 @@ bool GdtEntriesCache::initializeFromDb()
         //printf("add %d: %ld\n", entry.getId(), entry.getDate());
     }
     printf("[%s] time used for loading all gdt entries from db into memory: %s\n", __FUNCTION__, timeUsed.string().data());
+    timeUsed.reset();
 
+    int addedGlobalMods = 0;
     // sort together and check for global mod updates
     for(auto customer: customers) {
         auto email = customer.second->getEmails().front();
         auto gdtEntriesList = gdtEntriesPerEmail.find(email)->second;
-        if(gdtEntries.checkForMissingGlobalMod(customer.second, gdtEntriesPerEmail.find(email)->second)) {
-            // if global mod is missing, let gdt server calculate new one with request
+        while(auto count = gdtEntries.checkForMissingGlobalMod(customer.second, gdtEntriesPerEmail.find(email)->second, dbSession)) {
+            addedGlobalMods += count;
+            printf("\rcalculated globalMods: %d", addedGlobalMods);
+            /*// if global mod is missing, let gdt server calculate new one with request
             gdtEntriesList->reset();
             int page = 1;
             do {
@@ -222,6 +226,7 @@ bool GdtEntriesCache::initializeFromDb()
                     return false;
                 }            
             } while(gdtEntriesList->getTotalCount() > gdtEntriesList->getGdtEntriesCount());
+            */
         }
 
         mGdtEntriesByEmailMutex.lock();
@@ -230,10 +235,16 @@ bool GdtEntriesCache::initializeFromDb()
         }
         mGdtEntriesByEmailMutex.unlock();
     }
-
-    printf("[%s] time used for loading %ld gdt entries from db: %s\n", 
-        __FUNCTION__, customers.size(), timeUsed.string().data()
-    );
+    if(addedGlobalMods) {
+        printf("\n");
+        printf("[%s] time used for calculate %d missing global mods: %s\n", 
+            __FUNCTION__, addedGlobalMods, timeUsed.string().data()
+        );
+    } else {
+        printf("[%s] time used for checking for missing global mods: %s\n", 
+            __FUNCTION__, timeUsed.string().data()
+        );
+    }
 
     return false;
 }
