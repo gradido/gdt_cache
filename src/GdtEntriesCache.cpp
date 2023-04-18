@@ -195,7 +195,7 @@ bool GdtEntriesCache::initializeFromDb()
             do {
                 Profiler timePerCall;
                 try {
-                    auto json = _listPerEmailApi(email, page, 200, model::GdtEntryList::OrderDirections::ASC);
+                    auto json = _listPerEmailApi(email, page, 500, model::GdtEntryList::OrderDirections::ASC);
                     page++;
                     auto dataSetSize = gdtEntriesList->addGdtEntry(json);
                     printf("[%s] time for %d updated gdt entries (global mod): %s\n", 

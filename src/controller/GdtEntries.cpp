@@ -31,8 +31,6 @@ namespace controller
         
         // 1 for at least one 'normal' gdt entry in global mod range
         // 2 for at least one 'normal global mod' gdt entry in global mod range
-        // 4 for at least one 'staff wage' gdt entry in global mod range
-        // 8 for at least one 'staff wage global mod' gdt entry in global mod range
         
         for(int i = 0; i < mGlobalMods.size(); i++) {
             mGlobalModCheckMatrixBuffer[i].reserve(aEmails.size());
@@ -43,13 +41,17 @@ namespace controller
             auto it = emailIndexMap.find(entry.getEmail());
             if(it == emailIndexMap.end()) continue;
             auto emailIndex = it->second;
+            //printf("%d: \n", entry.getId());
             // check for global mod
             for(int iGlobalMod = 0; iGlobalMod < mGlobalMods.size(); iGlobalMod++) {
                 auto globalMod = mGlobalMods[iGlobalMod];
                 
                 if(entry.getDate() > globalMod.getStartDate() && entry.getDate() <= globalMod.getEndDate()) {
+              /*      printf("%d.%d (%s) %s %d\n", 
+                        iGlobalMod, emailIndex, entry.getEmail().data(), 
+                        entry.getGdtEntryTypeString(entry.getGdtEntryType()), entry.getDate());*/
                     switch(entry.getGdtEntryType()) 
-                    {
+                    {                        
                         // normal 1
                     case model::GdtEntry::GdtEntryType::FORM:
                     case model::GdtEntry::GdtEntryType::CVS:
@@ -57,23 +59,19 @@ namespace controller
                     case model::GdtEntry::GdtEntryType::ELOPAGE_PUBLISHER:
                     case model::GdtEntry::GdtEntryType::DIGISTORE:
                     case model::GdtEntry::GdtEntryType::CVS2: 
+                    case model::GdtEntry::GdtEntryType::CVS_STAFF_WAGE:
                         mGlobalModCheckMatrixBuffer[iGlobalMod][emailIndex] |= 1;
                         break;
                         // normal global mod 2
                     case model::GdtEntry::GdtEntryType::GLOBAL_MODIFICATOR:
                         mGlobalModCheckMatrixBuffer[iGlobalMod][emailIndex] |= 2;
                         break;
-                        // staff wage 4
-                    case model::GdtEntry::GdtEntryType::CVS_STAFF_WAGE:
-                        mGlobalModCheckMatrixBuffer[iGlobalMod][emailIndex] |= 4;
-                        break;
-                        // staff wage global mod 8
-                    case model::GdtEntry::GdtEntryType::STAFF_WAGE_GLOBAL_MODIFICATOR:
-                        mGlobalModCheckMatrixBuffer[iGlobalMod][emailIndex] |= 8;
-                        break;
                     }
+                } else {
+                    //printf("%d < %d <  %d\n", globalMod.getStartDate(), globalMod.getEndDate(), entry.getDate());
                 }
             }
+            //printf("\n");
         }
         bool findMissingGlobalMod = false;
         if(gdtEntriesList->getTotalCount() > 0) {
@@ -81,9 +79,9 @@ namespace controller
                 for(int iEmail = 0; iEmail < aEmails.size(); iEmail++) {
                     auto matrixValue = mGlobalModCheckMatrixBuffer[iGlobalMod][iEmail];
                     // good
-                    //if(matrixValue == 3 || matrixValue == 0 || matrixValue == 12 || matrixValue == 15) {
+                    //if(matrixValue == 3 || matrixValue == 0) {
                     // bad
-                    if((matrixValue & 3) == 1 || (matrixValue & 12) == 4) {
+                    if((matrixValue & 3) == 1) {
                         findMissingGlobalMod = true;
                         printf("[%s] find missing global mod, matrix value: %d, email: %s, global mod: %s\n", 
                             __FUNCTION__, matrixValue, aEmails[iEmail].data(), mGlobalMods[iGlobalMod].getName().data());
