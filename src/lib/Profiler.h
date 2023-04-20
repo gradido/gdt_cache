@@ -16,11 +16,11 @@
 class Profiler
 {
 public:
-	Profiler();
+	Profiler() noexcept;
 	Profiler(const Profiler& copy);
 	~Profiler();
 
-	inline void reset() { mStartTick = std::chrono::high_resolution_clock::now(); }
+	inline void reset() noexcept { mStartTick = std::chrono::high_resolution_clock::now();} 
 	double millis() const;
 	double micros() const;
 	double nanos() const;

@@ -4,12 +4,12 @@
 
 using namespace std::chrono;
 
-Profiler::Profiler()
+Profiler::Profiler() noexcept
 {
 	reset();
 }
 
-Profiler::Profiler(const Profiler& copy)
+Profiler::Profiler(const Profiler& copy) 
 {
 	mStartTick = copy.mStartTick;
 }

@@ -1,6 +1,7 @@
 #include <lithium_http_server.hh>
 
 #include "GdtEntriesCache.h"
+#include "ErrorContainer.h"
 #include "model/Config.h"
 #include "main.h"
 #include "boost/lexical_cast/bad_lexical_cast.hpp"
@@ -27,10 +28,18 @@ int main()
         fprintf(stderr, "exception thrown on initialize: %s\n", ex.what());
         return -2;
     }    
-
+    auto ec = ErrorContainer::getInstance();
     http_api api;
-    api.get("/status") = [](http_request& request, http_response& response) {
-        response.write("status: ok");
+    api.get("/status") = [&](http_request& request, http_response& response) 
+    {
+        if(ec->hasErrors()) {
+            response.write("<html><head><title>Errors</title></head><body>" + ec->getErrorsHtml() + "</body></html>");
+        } else { 
+            response.write("status: ok");
+        }
+    };
+    api.get("/listPerEmailApi") = [](http_request& request, http_response& response) {
+        response.write("{\"state\":\"error\",\"msg\":\"parameter error\"}");
     };
     api.get("/listPerEmailApi/{{email}}") = [&](http_request& request, http_response& response) {
         auto params = request.url_parameters(s::email = std::string());
@@ -53,13 +62,26 @@ int main()
                 s::orderDirection = std::string()
             );
             response.write(
-                ge->listPerEmailApi(params.email, params.page, params.count, model::GdtEntryList::orderDirectionFromString(params.orderDirection))
+                ge->listPerEmailApi(
+                    params.email, 
+                    params.page, 
+                    params.count, 
+                    model::GdtEntryList::orderDirectionFromString(params.orderDirection)
+                )
             );
         };
 
     api.post("/sumPerEmailApi") = [&](http_request& request, http_response& response) {
-        auto params = request.post_parameters(s::email = std::string());
-        response.write(ge->sumPerEmailApi(params.email));
+        auto params = request.post_parameters(s::email = std::optional<std::string>());
+        auto getParams = request.get_parameters(s::email = std::optional<std::string>());
+        if(getParams.email) {
+            response.write("{\"state\":\"error\",\"msg\":\"no post\"}");
+        }
+        else if(!params.email || params.email.value() == "") {
+            response.write("{\"state\":\"error\",\"msg\":\"parameter error\"}");
+        } else {
+            response.write(ge->sumPerEmailApi(params.email.value()));
+        }
     };
 
     // start http server

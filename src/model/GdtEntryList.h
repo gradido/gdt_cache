@@ -63,6 +63,7 @@ namespace model {
 		inline size_t getGdtEntriesCount() { return mGdtEntries.size();}
 		inline int getTotalCount() {return mTotalCount;}
 		inline const std::list<GdtEntry>& getGdtEntries() const {return mGdtEntries;}
+		inline double getGdtSum() const { return mTotalGDTSum;}
 
 		// todo calculate sum
 		// update with new data
