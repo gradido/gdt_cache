@@ -288,11 +288,28 @@ std::string GdtEntriesCache::listPerEmailApi(
                         +std::to_string(static_cast<float>(timeUsed.seconds()))+"}";
         } else {
             // needed because of memory allocator
-            Document baseJson;
-            auto resultJson = it->second->toJson(baseJson.GetAllocator(), timeUsed);
+            Document baseJson(kObjectType);
+            auto resultJson = it->second->toJson(baseJson.GetAllocator(), timeUsed, page, count, order);
+            //printf("result allocator size: %d %d kByte\n", baseJson.GetAllocator().Size(), baseJson.GetAllocator().Size() / 1024);
             StringBuffer buffer;
             Writer<StringBuffer> writer(buffer);
             resultJson.Accept(writer);
+            //printf("string buffer size: %d %d kByte\n", buffer.GetSize(), buffer.GetSize() / 1024);
+            // 50 * 1024 = hardcoded output buffer size from lithium
+            if(buffer.GetSize() > 50 * 1024) {
+                auto alloc = baseJson.GetAllocator();
+                Value errorJson(kObjectType);
+                errorJson.AddMember("state", "error", alloc);
+                errorJson.AddMember("error", "output to big, please retry with less count", alloc);
+                Value details(kObjectType);
+                details.AddMember("count", count, alloc);
+                details.AddMember("overflow", buffer.GetSize()-50 * 1024, alloc);
+                errorJson.AddMember("details", details, alloc);
+                StringBuffer buffer2;
+                Writer<StringBuffer> writer2(buffer2);
+                errorJson.Accept(writer2);
+                return buffer2.GetString();
+            }
             return buffer.GetString();
         }
 

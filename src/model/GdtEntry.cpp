@@ -2,6 +2,8 @@
 #include "../GradidoBlockchainException.h"
 #include "../lib/RapidjsonHelper.h"
 #include <math.h>
+#include <iomanip>
+#include <sstream>
 
 using namespace rapidjson;
 using namespace rapidjson_helper;
@@ -68,6 +70,11 @@ namespace model {
 	   mFactor2(get<11>(tuple)), mGDT(0.0)
 	{
 		mGDT = (mAmount * mFactor * mFactor2 + mAmount2) / 100.0;
+    	std::tm tm = *std::localtime(&mDate);
+		std::stringstream ss;
+		//2022-09-14T13:09:24+00:00
+		ss << std::put_time(&tm, "%Y-%m-%dT%H:%M:%S+00:00");
+		mDateString = ss.str();
 	}
 
 	GdtEntry::~GdtEntry()
@@ -85,7 +92,7 @@ namespace model {
 		gdtEntry.AddMember("email", Value(mEmail.data(), alloc), alloc);
 		gdtEntry.AddMember("comment", Value(mComment.data(), alloc), alloc);
 		gdtEntry.AddMember("coupon_code", Value(mCouponCode.data(), alloc), alloc);
-		gdtEntry.AddMember("gdt_entry_type_id", Value(getGdtEntryTypeString(mGdtEntryType), alloc), alloc);
+		gdtEntry.AddMember("gdt_entry_type_id", static_cast<int>(mGdtEntryType), alloc);
 		gdtEntry.AddMember("factor", mFactor, alloc);
 		gdtEntry.AddMember("amount2", static_cast<double>(mAmount2) / 100.0, alloc);
 		gdtEntry.AddMember("factor2", mFactor2, alloc);
@@ -127,17 +134,17 @@ namespace model {
 	std::string GdtEntry::getFullComment(Tuple tuple)
 	{
 		auto comment = get<4>(tuple), source = get<5>(tuple), project = get<6>(tuple);
+
 		// &#8210; = langer Gedankenstrich
 		std::string fullComment = comment;
         if(source.size()) {
 			if(fullComment.size()) fullComment += " – ";
-			fullComment += source;
+			fullComment += "Quelle: " + source;
 		}
 		if(project.size()) {
 			if(fullComment.size()) fullComment += " – ";
-			fullComment += project;
+			fullComment += "Projekt: " + project;
 		}
-        
         return fullComment;
 	}
 }

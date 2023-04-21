@@ -17,15 +17,15 @@ namespace model {
     
         Document configJson;
         configJson.ParseStream(iswConfig);
-        if(configJson.HasMember("gdtServerUrl")) {
+        if(configJson.HasMember("gdtServerUrl") && configJson["gdtServerUrl"].IsString()) {
             gdtServerUrl = configJson["gdtServerUrl"].GetString();
         }
-        if(configJson.HasMember("minCacheTimeout")) {
+        if(configJson.HasMember("minCacheTimeout") && configJson["minCacheTimeout"].IsInt()) {
             minCacheTimeout = configJson["minCacheTimeout"].GetInt();
         }
 
         // load db config
-        if(configJson.HasMember("db")) {
+        if(configJson.HasMember("db") && configJson["db"].IsObject()) {
             const auto& db = configJson["db"].GetObject();
             if(!db.HasMember("username") || !db.HasMember("password") || !db.HasMember("name")) {
                 fprintf(stderr, "[%s] missing infos for db connection\n", __FUNCTION__);
@@ -43,8 +43,15 @@ namespace model {
                     s::max_sync_connections = 200
                 );
             }
-
         }
+        // load allowed ips
+        if(configJson.HasMember("allowedIPs") && configJson["allowedIPs"].IsArray()) {
+            const auto& allowedHostsJsonArray = configJson["allowedIPs"].GetArray();
+            allowedHosts.reserve(allowedHostsJsonArray.Size());
+            for (auto& allowedHost : allowedHostsJsonArray) {
+                allowedHosts.push_back(allowedHost.GetString());
+            }
+        } 
     }
     Config::~Config()
     {   
