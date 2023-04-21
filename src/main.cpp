@@ -42,6 +42,7 @@ void checkIpAuthorized(http_request& request)
             throw http_error::unauthorized("{\"state\":\"error\"}");
         }
     }    
+    throw http_error::unauthorized("{\"state\":\"error\"}");
 }
 
 int main()
