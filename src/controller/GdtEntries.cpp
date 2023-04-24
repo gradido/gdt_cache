@@ -137,4 +137,31 @@ namespace controller
             __FUNCTION__, count, timeUsed.string().data());
             */
     }
+
+    std::shared_ptr<model::GdtEntryList> GdtEntries::loadGdtEntriesFromDB(
+        std::shared_ptr<model::Customer> customer,
+        li::mysql_connection<li::mysql_functions_blocking> connection
+    )
+    {
+        auto gdtEntries = std::make_shared<model::GdtEntryList>();
+
+        auto prepared = connection.prepare(
+        "select id, amount, UNIX_TIMESTAMP(date), LOWER(TRIM(email)), IFNULL(comment, ''), \
+        IFNULL(source, ''), IFNULL(project, ''), IFNULL(coupon_code, ''), \
+        gdt_entry_type_id, factor, amount2, factor2 from gdt_entries order by date ASC \
+        where email IN (?)");
+        
+        auto rows = prepared(customer->getEmailsString());
+        while (auto row = rows.read_optional<int, long long, int, std::string, std::string, std::string, std::string, std::string, int, float, int, float>())
+        {
+            model::GdtEntry entry(row.value());
+            // skip gdt entries with empty emails
+            if (entry.getEmail().size() == 0)
+                continue;
+
+            gdtEntries->addGdtEntry(entry);
+            // printf("add %d: %ld\n", entry.getId(), entry.getDate());
+        }
+        return gdtEntries;
+    }
 } // namespace controller

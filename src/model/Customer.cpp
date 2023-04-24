@@ -14,6 +14,12 @@ namespace model
         mEmails.push_back(email);
     }
 
+    Customer::Customer(const std::string& email)
+    : mId(-1)
+    {
+        mEmails.push_back(email);
+    }
+
     Customer::~Customer()
     {
 
@@ -25,5 +31,17 @@ namespace model
             if(existingEmail == email) return;
         }
         mEmails.push_back(email);
+    }
+
+    std::string Customer::getEmailsString() const
+    {
+        std::string emailsString = "";
+        for(auto email: mEmails) {
+            if(emailsString.size() > 0) {
+                emailsString += ",";
+            }
+            emailsString += email;
+        }
+        return emailsString;
     }
 }

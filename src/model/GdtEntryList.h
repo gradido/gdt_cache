@@ -59,6 +59,8 @@ namespace model {
 
 		//! \return true if last update is older than Config::minCacheTimeout
 		bool canUpdate();
+		//! \return true if last update is older than 4h
+		bool shouldUpdate();
 
 		inline size_t getGdtEntriesCount() { return mGdtEntries.size();}
 		inline int getTotalCount() {return mTotalCount;}

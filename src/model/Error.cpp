@@ -1,11 +1,12 @@
 #include "Error.h"
+#include <iostream>
 
 namespace model 
 {
     Error::Error(const std::string& _message, const std::string& _class, const std::string& _function) noexcept
     : mMessage(_message), mClass(_class), mFunction(_function)
     {
-
+        std::clog << "[" << mClass << ":" << mFunction << "] " << mMessage << std::endl;
     }
 
     Error::~Error()

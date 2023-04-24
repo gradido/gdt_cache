@@ -4,6 +4,11 @@
 #include <mutex>
 #include <shared_mutex>
 #include <vector>
+#include <queue>
+#include <thread>
+#include <condition_variable>
+
+#include "../task/Task.h"
 
 #ifdef _WIN32 
     #include <winsock2.h>
@@ -33,14 +38,32 @@ namespace controller {
             if(i >= mAllowedIps.size()) return "error"; else return mAllowedIps[i];
         }
 
+        void pushTask(std::shared_ptr<task::Task> task, bool priority = false);
+
+        // will be started on construction and run the whole live time
+        // not allowed to crash!!!
+        void updateThread();
+
     protected:
         UpdateManager();
         bool updateAllowedIp(const std::string& url);
+
+        // thread stuff
+        std::thread mMainThread;
+        std::condition_variable mMainThreadCondition;
+        std::mutex mMainThreadMutex;
+        bool mExitSignal;
+
+        // tasks
+        std::queue<std::shared_ptr<task::Task>> mTasks;
+        std::queue<std::shared_ptr<task::Task>> mPriorityTasks;
+        std::mutex mTasksMutex; 
 
         //! ip from allowed hosts from config
         std::vector<std::string> mAllowedIps;
         std::shared_mutex mAllowedIpsMutex;
         std::mutex mUpdateAllowedIpsMutex;
+        std::time_t mLastUpdateAllowedIps;
 
         // buffer 
         char mbIp[INET_ADDRSTRLEN];

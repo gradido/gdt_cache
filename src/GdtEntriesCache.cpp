@@ -4,7 +4,9 @@
 #include "model/Config.h"
 #include "controller/Contacts.h"
 #include "controller/GdtEntries.h"
+#include "controller/UpdateManager.h"
 #include "lib/Profiler.h"
+#include "task/UpdateGdtEntryList.h"
 
 #include <lithium_http_client.hh>
 #include <lithium_http_server.hh>
@@ -16,6 +18,7 @@
 #include <thread>
 #include <sstream>
 #include <chrono>
+#include <regex>
 
 using namespace li;
 using namespace rapidjson;
@@ -176,6 +179,10 @@ bool GdtEntriesCache::initializeFromDb()
         auto gdtEntriesList = std::make_shared<model::GdtEntryList>();
         for (auto email : customer.second->getEmails())
         {
+            // test regex pattern
+            if(!std::regex_match(email, g_EmailValidPattern)) {
+                fprintf(stderr, "[%s] %s matched false with email valid pattern, please update pattern!\n", __FUNCTION__, email.data());
+            }            
             gdtEntriesPerEmail.insert({email, gdtEntriesList});
         }
     }
@@ -281,15 +288,23 @@ std::string GdtEntriesCache::listPerEmailApi(
 {
     Profiler timeUsed;
     try {
-        std::lock_guard _lock(mGdtEntriesByEmailMutex);
+        std::unique_lock _lock(mGdtEntriesByEmailMutex);
+        auto um = controller::UpdateManager::getInstance();
         auto it = mGdtEntriesByEmails.find(email);
-        if(it == mGdtEntriesByEmails.end()) {
+        if(it == mGdtEntriesByEmails.end()) {            
+            if(std::regex_match(email, g_EmailValidPattern)) {
+                um->pushTask(std::make_shared<task::UpdateGdtEntryList>(email));
+            }
             return "{\"state\":\"success\",\"count\":0,\"gdtEntries\":[],\"gdtSum\":0,\"timeUsed\":"
                         +std::to_string(static_cast<float>(timeUsed.seconds()))+"}";
         } else {
+            if(it->second->canUpdate()) {
+                um->pushTask(std::make_shared<task::UpdateGdtEntryList>(email), true);
+            }
             // needed because of memory allocator
             Document baseJson(kObjectType);
             auto resultJson = it->second->toJson(baseJson.GetAllocator(), timeUsed, page, count, order);
+            _lock.unlock();
             //printf("result allocator size: %d %d kByte\n", baseJson.GetAllocator().Size(), baseJson.GetAllocator().Size() / 1024);
             StringBuffer buffer;
             Writer<StringBuffer> writer(buffer);
@@ -329,10 +344,17 @@ std::string GdtEntriesCache::sumPerEmailApi(const std::string &email)
     Profiler timeUsed;
     try {
         std::lock_guard _lock(mGdtEntriesByEmailMutex);
+        auto um = controller::UpdateManager::getInstance();
         auto it = mGdtEntriesByEmails.find(email);
         if(it == mGdtEntriesByEmails.end()) {
+            if(std::regex_match(email, g_EmailValidPattern)) {
+                um->pushTask(std::make_shared<task::UpdateGdtEntryList>(email));
+            }
             return "{\"state\":\"success\",\"sum\":0,\"count\":0,\"time\":"+std::to_string(timeUsed.seconds())+"}";
         } else {
+            if(it->second->canUpdate()) {
+                um->pushTask(std::make_shared<task::UpdateGdtEntryList>(email), true);
+            }
             return "{\"state\":\"success\",\"sum\":"
             + std::to_string(it->second->getGdtSum())
             +",\"count\":"
@@ -347,6 +369,89 @@ std::string GdtEntriesCache::sumPerEmailApi(const std::string &email)
     } catch(...) {
         ErrorContainer::getInstance()->addError({"unknown exception", "GdtEntriesCache", __FUNCTION__});
         throw li::http_error::internal_server_error("unknown");
+    } 
+}
+
+void GdtEntriesCache::scheduleForUpdates()
+{
+    try {
+        auto um = controller::UpdateManager::getInstance();
+        std::lock_guard _lock(mGdtEntriesByEmailMutex);
+        for(auto gdtEntriesList: mGdtEntriesByEmails) {
+            if(gdtEntriesList.second->shouldUpdate()) {
+                um->pushTask(std::make_shared<task::UpdateGdtEntryList>(gdtEntriesList.first));
+            }
+        }
+    } catch(std::system_error& ex) {
+        std::string message = "system exception: ";
+        message += ex.what();
+        ErrorContainer::getInstance()->addError({message, "GdtEntriesCache", __FUNCTION__});
+    } catch(...) {
+        ErrorContainer::getInstance()->addError({"unknown exception", "GdtEntriesCache", __FUNCTION__});
+    } 
+}
+
+bool GdtEntriesCache::canUpdateGdtEntryList(const std::string& email) const noexcept
+{
+    try {
+        std::lock_guard _lock(mGdtEntriesByEmailMutex);
+        auto it = mGdtEntriesByEmails.find(email);
+        if(it == mGdtEntriesByEmails.end()) {
+            return true;
+        }
+        return it->second->canUpdate();
+    } catch(std::system_error& ex) {
+        std::string message = "system exception: ";
+        message += ex.what();
+        ErrorContainer::getInstance()->addError({message, "GdtEntriesCache", __FUNCTION__});
+    } catch(...) {
+        ErrorContainer::getInstance()->addError({"unknown exception", "GdtEntriesCache", __FUNCTION__});
+    } 
+    return false;
+}
+
+bool GdtEntriesCache::shouldUpdateGdtEntryList(const std::string& email) const noexcept
+{
+    try {
+        std::lock_guard _lock(mGdtEntriesByEmailMutex);
+        auto it = mGdtEntriesByEmails.find(email);
+        if(it == mGdtEntriesByEmails.end()) {
+            return true;
+        }
+        return it->second->shouldUpdate();
+    } catch(std::system_error& ex) {
+        std::string message = "system exception: ";
+        message += ex.what();
+        ErrorContainer::getInstance()->addError({message, "GdtEntriesCache", __FUNCTION__});
+    } catch(...) {
+        ErrorContainer::getInstance()->addError({"unknown exception", "GdtEntriesCache", __FUNCTION__});
+    } 
+    return false;
+}
+
+void GdtEntriesCache::swapGdtEntryList(
+    std::shared_ptr<model::Customer> customer,
+    std::shared_ptr<model::GdtEntryList> updatedGdtEntryList
+) noexcept
+{
+    try {
+        std::lock_guard _lock(mGdtEntriesByEmailMutex);
+        for(auto email: customer->getEmails()) 
+        {
+            auto it = mGdtEntriesByEmails.find(email);
+            if(it == mGdtEntriesByEmails.end()) {
+                mGdtEntriesByEmails.insert({email, updatedGdtEntryList});
+            } else {
+                it->second = updatedGdtEntryList;
+            }
+        }
+        
+    } catch(std::system_error& ex) {
+        std::string message = "system exception: ";
+        message += ex.what();
+        ErrorContainer::getInstance()->addError({message, "GdtEntriesCache", __FUNCTION__});
+    } catch(...) {
+        ErrorContainer::getInstance()->addError({"unknown exception", "GdtEntriesCache", __FUNCTION__});
     } 
 }
 

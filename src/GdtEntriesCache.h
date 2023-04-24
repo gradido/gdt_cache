@@ -6,6 +6,7 @@
 #include <memory>
 #include <mutex>
 #include "model/GdtEntryList.h"
+#include "model/Customer.h"
 
 class GdtEntriesCache
 {
@@ -28,6 +29,16 @@ public:
 
     std::string sumPerEmailApi(const std::string& email);    
 
+    // go through gdt entries and create update task for every gdt entry list older than 4h
+    void scheduleForUpdates();
+
+    bool canUpdateGdtEntryList(const std::string& email) const noexcept;
+    bool shouldUpdateGdtEntryList(const std::string& email) const noexcept;
+    void swapGdtEntryList(
+        std::shared_ptr<model::Customer> customer, 
+        std::shared_ptr<model::GdtEntryList> updatedGdtEntryList
+    ) noexcept;
+
 protected:
     GdtEntriesCache();
 
@@ -40,7 +51,7 @@ protected:
     );
     //! email GdtEntryList used shared ptr because it could be pointed multiple times on by different emails
     std::unordered_map<std::string, std::shared_ptr<model::GdtEntryList>> mGdtEntriesByEmails; 
-    std::recursive_mutex mGdtEntriesByEmailMutex;
+    mutable std::recursive_mutex mGdtEntriesByEmailMutex;
 
 };
 

@@ -17,6 +17,10 @@ namespace controller
         ~GdtEntries();
 
         void loadGlobalModificators(li::mysql_connection<li::mysql_functions_blocking> connection);
+        std::shared_ptr<model::GdtEntryList> loadGdtEntriesFromDB(
+            std::shared_ptr<model::Customer> customer,
+            li::mysql_connection<li::mysql_functions_blocking> connection
+        );
 
         // run only one at a time, reuse buffer 
         int checkForMissingGlobalMod(

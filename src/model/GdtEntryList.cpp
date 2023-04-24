@@ -12,13 +12,13 @@ using namespace rapidjson_helper;
 namespace model {
 	
 	GdtEntryList::GdtEntryList(Value& gdtEntryList)
-		: mTotalCount(0), mTotalGDTSum(0.0f)
+		: mTotalCount(0), mTotalGDTSum(0.0f), mLastUpdate(std::time(nullptr))
 	{
 		addGdtEntry(gdtEntryList);
 	}
 
 	GdtEntryList::GdtEntryList()
-		: mTotalCount(0), mTotalGDTSum(0.0f)
+		: mTotalCount(0), mTotalGDTSum(0.0f), mLastUpdate(std::time(nullptr))
 	{
 	}
 
@@ -119,7 +119,7 @@ namespace model {
 			globalMod.getFactor(), static_cast<long long>(globalMod.getEndDate()), 
 			globalMod.getName()
 		);
-		auto id = connection("SELECT LAST_INSERT_ID()").read<int>();
+		auto id = connection.last_insert_rowid();
 		auto prepared2 = connection.prepare(
 			"INSERT INTO gdt_modificator_entries(gdt_entry_id, global_modificator_id, email) \
 			 VALUES(?,?,?)"
@@ -247,6 +247,11 @@ namespace model {
 	bool GdtEntryList::canUpdate()
 	{
 		return (std::time(nullptr) - mLastUpdate) > g_Config->minCacheTimeout;
+	}
+
+	bool GdtEntryList::shouldUpdate()
+	{
+		return (std::time(nullptr) - mLastUpdate) > 60 * 60 * 4;
 	}
 
 }

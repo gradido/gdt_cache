@@ -19,6 +19,7 @@ ErrorContainer* ErrorContainer::getInstance()
 
 void ErrorContainer::addError(model::Error error) noexcept
 {
+    std::clog << error.getCompleteMessage() << std::endl;
     try {
         std::lock_guard _lock(mWorkMutex);
         mErrors.push_back(error);
@@ -38,8 +39,15 @@ std::string ErrorContainer::getErrorsHtml() noexcept
 {
     try {
         std::lock_guard _lock(mWorkMutex);
+        // lithium hardcoded buffer size - 100 for html page
+        int maxHtmlSize = 50 * 1024 - 100;
         std::string resultHtml = "<ul class='errors'>";
         for(auto error: mErrors){
+            auto errorMessageHtml = error.getCompleteMessageHtml();
+            if(resultHtml.size() + errorMessageHtml.size() > maxHtmlSize) {
+                resultHtml += "<li>...</li>";
+                break;
+            }
             resultHtml += "<li>" + error.getCompleteMessageHtml() + "</li>";
         }
         resultHtml +="</ul>";

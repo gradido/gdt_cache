@@ -19,6 +19,11 @@ namespace controller
         ~Contacts();
 
         bool loadCustomersFromDb(li::mysql_connection<li::mysql_functions_blocking> connection);
+        static std::shared_ptr<model::Customer> loadCustomerFromDb(
+            li::mysql_connection<li::mysql_functions_blocking> connection, 
+            const std::string& email
+        );
+
         inline const CustomersMap& getCustomers() {return mCustomers;}
         
     protected:

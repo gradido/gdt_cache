@@ -4,6 +4,7 @@
 #include <fstream>
 
 model::Config* g_Config = nullptr;
+const std::regex g_EmailValidPattern("^[^\\s@]+@([^\\s@.,]+\\.)+[^\\s@.,]{2,}$");
 
 using namespace rapidjson;
 

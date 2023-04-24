@@ -16,12 +16,15 @@ using namespace std::chrono_literals;
 void checkIpAuthorized(http_request& request)
 {
     auto clientIp = request.ip_address();
+    printf("client ip: '%s', size: %d\n", clientIp.data(), clientIp.size());
+    if(clientIp == "::") return;
     auto um = controller::UpdateManager::getInstance();
     int countTrials = 0;
     while(countTrials < 2) {        
         countTrials++;
         // compare client ip with allowed ips
         for(int i = 0; i < um->getAllowedIpsCount(); i++) {
+            printf("compare %s == %s = %d\n", clientIp.data(), um->getAllowedIp(i).data(), clientIp == um->getAllowedIp(i));
             if(clientIp == um->getAllowedIp(i)) {
                 // found match, return to request
                 return;
