@@ -18,14 +18,16 @@ FILE(GLOB MAIN "src/*.cpp" "src/*.h")
 FILE(GLOB CONTROLLER "src/controller/*.cpp" "src/controller/*.h")
 FILE(GLOB MODEL "src/model/*.cpp" "src/model/*.h")
 FILE(GLOB LIB "src/lib/*.cpp" "src/lib/*.h")
+FILE(GLOB TASK "src/task/*.cpp" "src/task/*.h")
 
-SET(LOCAL_SRCS ${MAIN} ${CONTROLLER} ${MODEL} ${API} ${LIB})
+SET(LOCAL_SRCS ${MAIN} ${CONTROLLER} ${MODEL} ${API} ${LIB} ${TASK})
 
 if(MSVC)
     source_group("api" FILES ${API})
     source_group("controller" FILES ${CONTROLLER})
     source_group("lib" FILES ${LIB})
     source_group("model" FILES ${MODEL})    
+    source_group("task" FILES ${TASK})
 endif(MSVC)
 
 add_subdirectory(third_party/mariadb-connector-c)
