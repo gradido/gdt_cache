@@ -17,7 +17,7 @@ public:
     // fill up cache, load every gdt entry request from gdt server, could need some time
     bool initializeFromPhp();
     // fill up cache, directly access gdt server db and request gdt entries only if global modificators are not up to date
-    bool initializeFromDb();
+    void initializeFromDb();
 
     //! return json string from cache and schedule update for this email
     std::string listPerEmailApi(
@@ -30,7 +30,7 @@ public:
     std::string sumPerEmailApi(const std::string& email);    
 
     // go through gdt entries and create update task for every gdt entry list older than 4h
-    void scheduleForUpdates();
+    void reloadCacheAfterTimeout(li::mysql_connection<li::mysql_functions_blocking> connection, bool ignoreTimeout = false);
 
     bool canUpdateGdtEntryList(const std::string& email) const noexcept;
     bool shouldUpdateGdtEntryList(const std::string& email) const noexcept;
@@ -41,6 +41,8 @@ public:
 
 protected:
     GdtEntriesCache();
+    // reload contacts and gdt entries from db complete
+    void loadFromDb(li::mysql_connection<li::mysql_functions_blocking> connection);
 
     // api calls
     rapidjson::Document _listPerEmailApi(
@@ -52,6 +54,7 @@ protected:
     //! email GdtEntryList used shared ptr because it could be pointed multiple times on by different emails
     std::unordered_map<std::string, std::shared_ptr<model::GdtEntryList>> mGdtEntriesByEmails; 
     mutable std::recursive_mutex mGdtEntriesByEmailMutex;
+    std::time_t     mLastCacheReload;
 
 };
 

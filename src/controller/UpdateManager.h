@@ -8,7 +8,7 @@
 #include <thread>
 #include <condition_variable>
 
-#include "../task/Task.h"
+#include "../task/UpdateGdtEntryList.h"
 
 #ifdef _WIN32 
     #include <winsock2.h>
@@ -38,7 +38,7 @@ namespace controller {
             if(i >= mAllowedIps.size()) return "error"; else return mAllowedIps[i];
         }
 
-        void pushTask(std::shared_ptr<task::Task> task, bool priority = false);
+        void pushTask(std::shared_ptr<task::UpdateGdtEntryList> task, bool priority = false);
 
         // will be started on construction and run the whole live time
         // not allowed to crash!!!
@@ -55,8 +55,8 @@ namespace controller {
         bool mExitSignal;
 
         // tasks
-        std::queue<std::shared_ptr<task::Task>> mTasks;
-        std::queue<std::shared_ptr<task::Task>> mPriorityTasks;
+        std::queue<std::shared_ptr<task::UpdateGdtEntryList>> mTasks;
+        std::queue<std::shared_ptr<task::UpdateGdtEntryList>> mPriorityTasks;
         std::mutex mTasksMutex; 
 
         //! ip from allowed hosts from config
@@ -67,6 +67,7 @@ namespace controller {
 
         // buffer 
         char mbIp[INET_ADDRSTRLEN];
+        char mbIpv6[INET6_ADDRSTRLEN];
     };
 }
 

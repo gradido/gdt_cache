@@ -9,6 +9,7 @@
 
 #include <chrono>
 #include <thread>
+#include <iostream>
 
 using namespace li;
 using namespace std::chrono_literals;
@@ -16,8 +17,10 @@ using namespace std::chrono_literals;
 void checkIpAuthorized(http_request& request)
 {
     auto clientIp = request.ip_address();
-    printf("client ip: '%s', size: %d\n", clientIp.data(), clientIp.size());
-    if(clientIp == "::") return;
+    printf("client ip: '%s', size: %ld\n", clientIp.data(), clientIp.size());
+    std::string localhost_ipfv6 = "::";
+    localhost_ipfv6.resize(INET6_ADDRSTRLEN);
+    if(clientIp == localhost_ipfv6) return;
     auto um = controller::UpdateManager::getInstance();
     int countTrials = 0;
     while(countTrials < 2) {        
@@ -57,10 +60,7 @@ int main()
     // load data form gdt server
     auto ge = GdtEntriesCache::getInstance();
     try {
-        if(!ge->initializeFromDb()) {
-            fprintf(stderr, "error initializing gdt entries cache\n");
-            return -1;
-        }
+        ge->initializeFromDb();
     } catch(boost::bad_lexical_cast& ex) {
         fprintf(stderr, "exception thrown on initialize: bad lexical cast from source: %s to target: %s\n",
             ex.source_type().name(), ex.target_type().name());
@@ -139,7 +139,7 @@ int main()
     };
 
     // start http server
-    http_serve(api, 8710);
+    http_serve(api, g_Config->port);
 
     delete g_Config;
     g_Config = nullptr;

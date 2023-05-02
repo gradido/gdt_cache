@@ -6,4 +6,13 @@ namespace model {
     {
 
     }
+
+    bool GlobalModificator::operator==(const GlobalModificator& b) const
+    {
+        return 
+            mFactor == b.mFactor &&
+            mStartDate == b.mStartDate &&
+            mEndDate == b.mEndDate &&
+            mId == b.mId;
+    }
 }

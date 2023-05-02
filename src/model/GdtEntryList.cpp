@@ -251,7 +251,7 @@ namespace model {
 
 	bool GdtEntryList::shouldUpdate()
 	{
-		return (std::time(nullptr) - mLastUpdate) > 60 * 60 * 4;
+		return (std::time(nullptr) - mLastUpdate) > 60 * 1;//60 * 60 * 4;
 	}
 
 }

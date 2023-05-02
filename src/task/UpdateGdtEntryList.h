@@ -20,9 +20,13 @@ namespace task
         );
 
         const char* getClass() const {return "UpdateGdtEntryList";}
-        const char* getName() const {return mEmail.data();}
+        const char* getName() const {return mName.data();}
+        const std::string getEmail() const { return mEmail;}
     protected:
+        // email of user
         std::string mEmail;
+        // only first two and last two character of email, other characters replaced with x
+        std::string mName;
     };
 }
 

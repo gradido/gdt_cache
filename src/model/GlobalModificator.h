@@ -23,6 +23,10 @@ namespace model {
         inline float getFactor() const { return mFactor;}
         inline std::time_t getStartDate() const {return mStartDate;}
         inline std::time_t getEndDate() const {return mEndDate;}        
+
+        bool operator==(const GlobalModificator& b) const;
+        inline bool operator!=(const GlobalModificator& b) const {return !(*this == b);}
+
     protected:
         int mId;
         std::string mName;

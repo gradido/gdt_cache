@@ -16,7 +16,8 @@ namespace controller
         GdtEntries();
         ~GdtEntries();
 
-        void loadGlobalModificators(li::mysql_connection<li::mysql_functions_blocking> connection);
+        //! \return true if diffs to previous dataset where found
+        bool loadGlobalModificators(li::mysql_connection<li::mysql_functions_blocking> connection);
         std::shared_ptr<model::GdtEntryList> loadGdtEntriesFromDB(
             std::shared_ptr<model::Customer> customer,
             li::mysql_connection<li::mysql_functions_blocking> connection

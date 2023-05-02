@@ -161,122 +161,11 @@ bool GdtEntriesCache::initializeFromPhp()
     return true;
 }
 
-bool GdtEntriesCache::initializeFromDb()
+void GdtEntriesCache::initializeFromDb()
 {
     auto dbSession = g_Config->database->connect();
-    controller::Contacts contacts;
-    contacts.loadCustomersFromDb(dbSession);
-    const auto &customers = contacts.getCustomers();
-    controller::GdtEntries gdtEntries;
-    gdtEntries.loadGlobalModificators(dbSession);
-    std::list<std::string> missingEmailsInContactsTable;
-
-    Profiler timeUsed;
-
-    std::map<std::string, std::shared_ptr<model::GdtEntryList>> gdtEntriesPerEmail;
-    for (auto customer : customers)
-    {
-        auto gdtEntriesList = std::make_shared<model::GdtEntryList>();
-        for (auto email : customer.second->getEmails())
-        {
-            // test regex pattern
-            if(!std::regex_match(email, g_EmailValidPattern)) {
-                fprintf(stderr, "[%s] %s matched false with email valid pattern, please update pattern!\n", __FUNCTION__, email.data());
-            }            
-            gdtEntriesPerEmail.insert({email, gdtEntriesList});
-        }
-    }
-
-    auto rows = dbSession(
-        "select id, amount, UNIX_TIMESTAMP(date), LOWER(TRIM(email)), IFNULL(comment, ''), \
-            IFNULL(source, ''), IFNULL(project, ''), IFNULL(coupon_code, ''), \
-            gdt_entry_type_id, factor, amount2, factor2 from gdt_entries order by date ASC");
-    while (auto row = rows.read_optional<int, long long, int, std::string, std::string, std::string, std::string, std::string, int, float, int, float>())
-    {
-        model::GdtEntry entry(row.value());
-        // skip gdt entries with empty emails
-        if (entry.getEmail().size() == 0)
-            continue;
-
-        auto it = gdtEntriesPerEmail.find(entry.getEmail());
-        if (it == gdtEntriesPerEmail.end())
-        {
-            missingEmailsInContactsTable.push_back(entry.getEmail());
-            it = gdtEntriesPerEmail.insert({entry.getEmail(), std::make_shared<model::GdtEntryList>()}).first;
-            fprintf(stderr, "[%s] missing %s email in contacts table, cannot check global mods for them\n", __FUNCTION__, entry.getEmail().data());
-        }
-        it->second->addGdtEntry(entry);
-        // printf("add %d: %ld\n", entry.getId(), entry.getDate());
-    }
-    printf("[%s] time used for loading all gdt entries from db into memory: %s\n", __FUNCTION__, timeUsed.string().data());
-    timeUsed.reset();
-
-    int addedGlobalMods = 0;
-    // sort together and check for global mod updates
-    for (auto customer : customers)
-    {
-        auto email = customer.second->getEmails().front();
-        auto gdtEntriesList = gdtEntriesPerEmail.find(email)->second;
-        while (auto count = gdtEntries.checkForMissingGlobalMod(customer.second, gdtEntriesPerEmail.find(email)->second, dbSession))
-        {
-            addedGlobalMods += count;
-            printf("\rcalculated globalMods: %d", addedGlobalMods);
-            /*// if global mod is missing, let gdt server calculate new one with request
-            gdtEntriesList->reset();
-            int page = 1;
-            do {
-                Profiler timePerCall;
-                try {
-                    auto json = _listPerEmailApi(email, page, 500, model::GdtEntryList::OrderDirections::ASC);
-                    page++;
-                    auto dataSetSize = gdtEntriesList->addGdtEntry(json);
-                    printf("[%s] time for %d updated gdt entries (global mod): %s\n",
-                        __FUNCTION__, dataSetSize, timePerCall.string().data());
-                    if(timePerCall.seconds() > 5) {
-                        std::this_thread::sleep_for(1s);
-                    }
-                } catch(RapidjsonParseErrorException& ex) {
-                    auto errorString = ex.getFullString();
-                    if(errorString.size() > 100) {
-                        std::string fileName = std::to_string(std::time(nullptr));
-                        fileName += "_listPerEmailApi.html";
-                        FILE* f = fopen(fileName.data(), "wt");
-                        fwrite(errorString.data(), sizeof(char), errorString.size(), f);
-                        fclose(f);
-                        fprintf(
-                            stderr, "RapidjsonParseErrorException [%s] error to long, written to file: %s\n",
-                            __FUNCTION__, fileName.data()
-                        );
-                    } else {
-                        fprintf(stderr, "RapidjsonParseErrorException [%s] %s\n", __FUNCTION__, ex.getFullString().data());
-                    }
-
-                    return false;
-                }
-            } while(gdtEntriesList->getTotalCount() > gdtEntriesList->getGdtEntriesCount());
-            */
-        }
-
-        mGdtEntriesByEmailMutex.lock();
-        for (auto email : customer.second->getEmails())
-        {
-            mGdtEntriesByEmails.insert({email, gdtEntriesPerEmail.find(email)->second});
-        }
-        mGdtEntriesByEmailMutex.unlock();
-    }
-    if (addedGlobalMods)
-    {
-        printf("\n");
-        printf("[%s] time used for calculate %d missing global mods: %s\n",
-               __FUNCTION__, addedGlobalMods, timeUsed.string().data());
-    }
-    else
-    {
-        printf("[%s] time used for checking for missing global mods: %s\n",
-               __FUNCTION__, timeUsed.string().data());
-    }
-
-    return true;
+    loadFromDb(dbSession);
+    mLastCacheReload = time(nullptr);
 }
 
 std::string GdtEntriesCache::listPerEmailApi(
@@ -372,23 +261,26 @@ std::string GdtEntriesCache::sumPerEmailApi(const std::string &email)
     } 
 }
 
-void GdtEntriesCache::scheduleForUpdates()
+void GdtEntriesCache::reloadCacheAfterTimeout(li::mysql_connection<li::mysql_functions_blocking> connection, bool ignoreTimeout/* = false*/)
 {
-    try {
-        auto um = controller::UpdateManager::getInstance();
-        std::lock_guard _lock(mGdtEntriesByEmailMutex);
-        for(auto gdtEntriesList: mGdtEntriesByEmails) {
-            if(gdtEntriesList.second->shouldUpdate()) {
-                um->pushTask(std::make_shared<task::UpdateGdtEntryList>(gdtEntriesList.first));
-            }
+    auto now = time(nullptr);
+    if(now - mLastCacheReload > g_Config->maxCacheTimeout || ignoreTimeout) {
+        try {
+            loadFromDb(connection);
+        } catch(std::runtime_error& ex) {
+            std::string message = "runtime error: ";
+            message += ex.what();
+            ErrorContainer::getInstance()->addError({message, "GdtEntriesCache", __FUNCTION__});
+        } catch(std::exception& ex) {
+            std::string message = "library exception: ";
+            message += ex.what();
+            ErrorContainer::getInstance()->addError({message, "GdtEntriesCache", __FUNCTION__});
         }
-    } catch(std::system_error& ex) {
-        std::string message = "system exception: ";
-        message += ex.what();
-        ErrorContainer::getInstance()->addError({message, "GdtEntriesCache", __FUNCTION__});
-    } catch(...) {
-        ErrorContainer::getInstance()->addError({"unknown exception", "GdtEntriesCache", __FUNCTION__});
-    } 
+        catch(...) {
+            ErrorContainer::getInstance()->addError({"unknown exception", "GdtEntriesCache", __FUNCTION__});
+        } 
+        mLastCacheReload = now;
+    }
 }
 
 bool GdtEntriesCache::canUpdateGdtEntryList(const std::string& email) const noexcept
@@ -453,6 +345,139 @@ void GdtEntriesCache::swapGdtEntryList(
     } catch(...) {
         ErrorContainer::getInstance()->addError({"unknown exception", "GdtEntriesCache", __FUNCTION__});
     } 
+}
+
+void GdtEntriesCache::loadFromDb(li::mysql_connection<li::mysql_functions_blocking> connection)
+{
+    controller::Contacts contacts;
+    contacts.loadCustomersFromDb(connection);
+    const auto &customers = contacts.getCustomers();
+    controller::GdtEntries gdtEntries;
+    gdtEntries.loadGlobalModificators(connection);
+    std::list<std::string> missingEmailsInContactsTable;
+
+    Profiler timeUsed;
+
+    std::map<std::string, std::shared_ptr<model::GdtEntryList>> gdtEntriesPerEmail;
+    for (auto customer : customers)
+    {
+        auto gdtEntriesList = std::make_shared<model::GdtEntryList>();
+        for (auto email : customer.second->getEmails())
+        {
+            // test regex pattern
+            if(!std::regex_match(email, g_EmailValidPattern)) {
+                fprintf(stderr, "[%s] %s matched false with email valid pattern, please update pattern!\n", __FUNCTION__, email.data());
+            }            
+            gdtEntriesPerEmail.insert({email, gdtEntriesList});
+        }
+    }
+
+    auto rows = connection(
+        "select id, amount, UNIX_TIMESTAMP(date), LOWER(TRIM(email)), IFNULL(comment, ''), \
+            IFNULL(source, ''), IFNULL(project, ''), IFNULL(coupon_code, ''), \
+            gdt_entry_type_id, factor, amount2, factor2 from gdt_entries order by date ASC");
+    while (auto row = rows.read_optional<int, long long, int, std::string, std::string, std::string, std::string, std::string, int, float, int, float>())
+    {
+        model::GdtEntry entry(row.value());
+        // skip gdt entries with empty emails
+        if (entry.getEmail().size() == 0)
+            continue;
+
+        auto it = gdtEntriesPerEmail.find(entry.getEmail());
+        if (it == gdtEntriesPerEmail.end())
+        {
+            missingEmailsInContactsTable.push_back(entry.getEmail());
+            it = gdtEntriesPerEmail.insert({entry.getEmail(), std::make_shared<model::GdtEntryList>()}).first;
+            fprintf(stderr, "[%s] missing %s email in contacts table, cannot check global mods for them\n", __FUNCTION__, entry.getEmail().data());
+        }
+        it->second->addGdtEntry(entry);
+        // printf("add %d: %ld\n", entry.getId(), entry.getDate());
+    }
+    printf("[%s] time used for loading all gdt entries from db into memory: %s\n", __FUNCTION__, timeUsed.string().data());
+    timeUsed.reset();
+
+    int addedGlobalMods = 0;
+
+    mGdtEntriesByEmailMutex.lock();
+    mGdtEntriesByEmails.clear();
+    std::vector<std::string> lockedTables = {
+        "gdt_entries",
+        "global_modificators",
+        "gdt_modificator_entries"
+    };
+    std::string lockTablesQuery = "LOCK TABLES ";
+    for(int i = 0; i < lockedTables.size(); i++) {
+        if(i) {
+            lockTablesQuery +=",";
+        }
+        lockTablesQuery += lockedTables[i] + " WRITE";
+    }
+    connection(lockTablesQuery);
+
+    // sort together and check for global mod updates
+    for (auto customer : customers)
+    {
+        auto email = customer.second->getEmails().front();
+        auto gdtEntriesList = gdtEntriesPerEmail.find(email)->second;
+        while (auto count = gdtEntries.checkForMissingGlobalMod(customer.second, gdtEntriesPerEmail.find(email)->second, connection))
+        {
+            addedGlobalMods += count;
+            printf("\rcalculated globalMods: %d", addedGlobalMods);
+            /*// if global mod is missing, let gdt server calculate new one with request
+            gdtEntriesList->reset();
+            int page = 1;
+            do {
+                Profiler timePerCall;
+                try {
+                    auto json = _listPerEmailApi(email, page, 500, model::GdtEntryList::OrderDirections::ASC);
+                    page++;
+                    auto dataSetSize = gdtEntriesList->addGdtEntry(json);
+                    printf("[%s] time for %d updated gdt entries (global mod): %s\n",
+                        __FUNCTION__, dataSetSize, timePerCall.string().data());
+                    if(timePerCall.seconds() > 5) {
+                        std::this_thread::sleep_for(1s);
+                    }
+                } catch(RapidjsonParseErrorException& ex) {
+                    auto errorString = ex.getFullString();
+                    if(errorString.size() > 100) {
+                        std::string fileName = std::to_string(std::time(nullptr));
+                        fileName += "_listPerEmailApi.html";
+                        FILE* f = fopen(fileName.data(), "wt");
+                        fwrite(errorString.data(), sizeof(char), errorString.size(), f);
+                        fclose(f);
+                        fprintf(
+                            stderr, "RapidjsonParseErrorException [%s] error to long, written to file: %s\n",
+                            __FUNCTION__, fileName.data()
+                        );
+                    } else {
+                        fprintf(stderr, "RapidjsonParseErrorException [%s] %s\n", __FUNCTION__, ex.getFullString().data());
+                    }
+
+                    return false;
+                }
+            } while(gdtEntriesList->getTotalCount() > gdtEntriesList->getGdtEntriesCount());
+            */
+        }
+
+        
+        for (auto email : customer.second->getEmails()) {
+            mGdtEntriesByEmails.insert({email, gdtEntriesPerEmail.find(email)->second});
+        }
+    }
+    mGdtEntriesByEmailMutex.unlock();
+    connection("UNLOCK TABLES");
+    if (addedGlobalMods)
+    {
+        printf("\n");
+        printf("[%s] time used for calculate %d missing global mods: %s\n",
+               __FUNCTION__, addedGlobalMods, timeUsed.string().data());
+    }
+    else
+    {
+        printf("[%s] time used for checking for missing global mods: %s\n",
+               __FUNCTION__, timeUsed.string().data());
+    }
+
 }
 
 Document GdtEntriesCache::_listPerEmailApi(

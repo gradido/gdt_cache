@@ -14,8 +14,11 @@ namespace model
         ~Config();
 
         std::string gdtServerUrl;
+        int port;
         //! minimal cache timeout in seconds
         int minCacheTimeout;
+        //! maximal cache timeout in seconds
+        int maxCacheTimeout;
 
         li::mysql_database* database;
         std::vector<std::string> allowedHosts;

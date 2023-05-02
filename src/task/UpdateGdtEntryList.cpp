@@ -5,10 +5,12 @@
 namespace task 
 {
     UpdateGdtEntryList::UpdateGdtEntryList(const std::string& email)
-    : mEmail(email)
+    : mEmail(email), mName(email)
     {
-
-    }
+        for(int i = 2; i < email.size() - 2; i++) {
+            mName.data()[i] = 'x';
+        }
+    }   
 
 
     UpdateGdtEntryList::~UpdateGdtEntryList()
@@ -21,20 +23,22 @@ namespace task
         controller::GdtEntries& gdtEntries
     )
     {
+        Profiler timeUsed;
         auto gc = GdtEntriesCache::getInstance();
 
-        printf("[%s] check\n", __FUNCTION__);
+        
         if(!mEmail.size()) return;        
-        if((!gc->shouldUpdateGdtEntryList(mEmail) || !gc->canUpdateGdtEntryList(mEmail))) return;
-        printf("[%s] start\n", __FUNCTION__);
+        if((!gc->canUpdateGdtEntryList(mEmail))) return;
+        
         auto customer = controller::Contacts::loadCustomerFromDb(connection, mEmail);
         if(!customer) customer = std::make_shared<model::Customer>(mEmail);
-        printf("[%s] loaded customers: %s\n", __FUNCTION__, customer->getEmailsString().data());
         auto gdtEntriesList = gdtEntries.loadGdtEntriesFromDB(customer, connection);
-        printf("[%s] load gdt entries from db: %d", __FUNCTION__, gdtEntriesList->getTotalCount());
         auto addedMissingGlobCount = gdtEntries.checkForMissingGlobalMod(customer, gdtEntriesList, connection);
-        printf("[%s] added missing glob count: %d", __FUNCTION__, addedMissingGlobCount);
         gc->swapGdtEntryList(customer, gdtEntriesList);
-        printf("[%s] end\n", __FUNCTION__);
+        if(gdtEntriesList->getTotalCount() > 0) {
+            printf("[UpdateGdtEntryList] %s timeUsed for loading %ld contacts, %d gdt entries and %d global mod\n",
+                timeUsed.string().data(), customer->getEmails().size(), gdtEntriesList->getTotalCount(), addedMissingGlobCount
+            );
+        }
     }
 }

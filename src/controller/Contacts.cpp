@@ -1,5 +1,6 @@
 #include "Contacts.h"
 #include "../lib/Profiler.h"
+#include "../ErrorContainer.h"
 #include <set>
 
 #define CONTACTS_SELECT_STRING "select id, LOWER(TRIM(email)), IFNULL(parent_contact_id, 0) from contacts"
@@ -51,42 +52,52 @@ namespace controller
         Profiler timeUsed;
         if(!email.size()) return nullptr;
         Profiler startTime;
-        std::shared_ptr<model::Customer> customer; //= std::make_shared<model::Customer>(email);
-        std::string selfJoinSelectString = "";
-        selfJoinSelectString += "select c1.id, LOWER(TRIM(c1.email)) as email1, LOWER(TRIM(c2.email)) as email2 ";
-        selfJoinSelectString += "from contacts c1, contacts c2 ";
-        selfJoinSelectString += "WHERE c1.id = c2.parent_contact_id ";
-        selfJoinSelectString += "AND (c1.parent_contact_id IS NULL OR c1.parent_contact_id = 0) ";
-        selfJoinSelectString += "AND (c1.email LIKE ? OR c2.email LIKE ?)";
-
-        std::string selectString = CONTACTS_SELECT_STRING;
-        selectString += " where email LIKE ?";
-    
-        std::set<std::string> emails;
+        std::shared_ptr<model::Customer> customer; //= std::make_shared<model::Customer>(email);          
+        
         int recordCount = 0;
+        // for checking if email already exist
+        std::set<std::string> emailSet;
+        bool emailIsMain = true;
         std::function mapFunction {
-            [&](int id, const std::string& email1, const std::string& email2) {
-                if(!customer) customer = std::make_shared<model::Customer>(email1);
-                if(email2 != email) {
-                    // insert only if not already exist
-                    emails.insert(email2);
-                }
+            [&](int id, const std::string& _email, int parent_contact_id) 
+            {
+                if(!customer) {
+                    int mainId = id;
+                    if(parent_contact_id) {
+                        mainId = parent_contact_id;
+                        emailIsMain = false;
+                    }
+                    customer = std::make_shared<model::Customer>(mainId, _email);
+                    emailSet.insert(_email);
+                } else {
+                    auto it = emailSet.insert(_email);
+                    // email could be added so it is unique
+                    if(it.second) {
+                        customer->addEmail(_email);
+                    }
+                }                
                 recordCount++;
             }
         };
-        auto query = connection.prepare(selfJoinSelectString);
-        auto rows = query(email, email);
-        rows.map(mapFunction);
-        auto mainEmail = customer->getFirstEmail();
-        if(mainEmail.size() && mainEmail != email) {            
-            auto rows2 = query(mainEmail, mainEmail);
-            rows2.map(mapFunction);
-        }        
-
-        for(auto& email: emails) {
-            customer->addEmail(email);
+        std::string selectMainContact = CONTACTS_SELECT_STRING;
+        selectMainContact += " where LOWER(TRIM(email)) LIKE LOWER(TRIM(?)) order by id ASC";
+        connection.prepare(selectMainContact)(email).map(mapFunction);        
+        if(!customer) {
+            std::string message = "contact ";
+            message = email.substr(0, 3) + "... in db not found";
+            ErrorContainer::getInstance()->addError({message, "controller::Contacts", __FUNCTION__});
+            return std::make_shared<model::Customer>(email);
         }
-        printf("[%s] time used for %d records: %s\n", __FUNCTION__, recordCount, timeUsed.string().data());
+
+        std::string selectAdditionalContacts = CONTACTS_SELECT_STRING;
+        selectAdditionalContacts += " where parent_contact_id = ?";
+        if(!emailIsMain) {
+            selectAdditionalContacts += " OR id = ?";
+            connection.prepare(selectAdditionalContacts)(customer->getId(), customer->getId()).map(mapFunction);
+        } else {
+            connection.prepare(selectAdditionalContacts)(customer->getId()).map(mapFunction);
+        }
+        //printf("[%s] time used for %d records: %s\n", __FUNCTION__, recordCount, timeUsed.string().data());
         return customer;
     }
 

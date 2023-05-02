@@ -112,30 +112,44 @@ namespace controller
         
     }
 
-    void GdtEntries::loadGlobalModificators(li::mysql_connection<li::mysql_functions_blocking> connection)
+    bool GdtEntries::loadGlobalModificators(li::mysql_connection<li::mysql_functions_blocking> connection)
     {
         Profiler timeUsed;
-        mGlobalMods.clear();
-        mGlobalModCheckMatrixBuffer.clear();
-
+        std::vector<model::GlobalModificator> globalMods;
+        // print 'diffFound' only if loadGlobalModificators wasn't the first call
+        bool created = mGlobalMods.size() == 0;
         auto rows = connection(
             "select id, name, factor, IFNULL(UNIX_TIMESTAMP(start_date),946681200), UNIX_TIMESTAMP(end_date) \
              from global_modificators where end_date < now() order by end_date ASC");
         rows.map([&](int id, std::string name, float factor, std::time_t startDate, std::time_t endDate) {
-            mGlobalMods.push_back(model::GlobalModificator(id, name,factor, startDate, endDate));
-            mGlobalModCheckMatrixBuffer.push_back(std::vector<uint8_t>());
+            globalMods.push_back(model::GlobalModificator(id, name,factor, startDate, endDate));
         });
-        printf("[%s] time for loading global modificators: %s\n", __FUNCTION__, timeUsed.string().data());
+        bool diffFound = false;
+        if(mGlobalMods.size() != globalMods.size()) {
+            diffFound = true;
+        } else {
+            for(int i = 0; i < globalMods.size(); i++) {
+                if(mGlobalMods[i] != globalMods[i]) {
+                    diffFound = true;
+                    break;
+                }
+            }
+        }
+        if(diffFound) {
+            if(mGlobalMods.size() != globalMods.size()) {
+                mGlobalModCheckMatrixBuffer.clear();
+                mGlobalModCheckMatrixBuffer = std::vector<std::vector<uint8_t>>(globalMods.size(), std::vector<uint8_t>());
+            }
+            mGlobalMods.swap(globalMods);
+        }
 
-       /* timeUsed.reset();
-        auto rows = connection("select gdt_entry_id, global_modificator_id, email from gdt_modificator_entries");
-        int count = 0;
-        rows.map([&](int gdtEntryId, int globalModificatorId, std::string email) {
-            count++;
-        });
-        printf("[%s] time for loading %d global modificator entries: %s\n",
-            __FUNCTION__, count, timeUsed.string().data());
-            */
+        //    mGlobalModCheckMatrixBuffer.push_back(std::vector<uint8_t>());
+        if(created) {
+            printf("[%s] time for loading global modificators: %s\n", __FUNCTION__, timeUsed.string().data());
+        } else {
+            printf("[%s] time for loading global modificators: %s, diffFound: %d\n", __FUNCTION__, timeUsed.string().data(), static_cast<int>(diffFound));
+        }
+        return diffFound;
     }
 
     std::shared_ptr<model::GdtEntryList> GdtEntries::loadGdtEntriesFromDB(
@@ -148,8 +162,7 @@ namespace controller
         auto prepared = connection.prepare(
         "select id, amount, UNIX_TIMESTAMP(date), LOWER(TRIM(email)), IFNULL(comment, ''), \
         IFNULL(source, ''), IFNULL(project, ''), IFNULL(coupon_code, ''), \
-        gdt_entry_type_id, factor, amount2, factor2 from gdt_entries order by date ASC \
-        where email IN (?)");
+        gdt_entry_type_id, factor, amount2, factor2 from gdt_entries where email IN (?) order by date ASC");
         
         auto rows = prepared(customer->getEmailsString());
         while (auto row = rows.read_optional<int, long long, int, std::string, std::string, std::string, std::string, std::string, int, float, int, float>())
