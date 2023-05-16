@@ -1,6 +1,6 @@
 #include "GdtEntry.h"
 #include "../GradidoBlockchainException.h"
-#include "../lib/RapidjsonHelper.h"
+#include "../utils/RapidjsonHelper.h"
 #include <math.h>
 #include <iomanip>
 #include <sstream>
@@ -82,38 +82,6 @@ namespace model {
 
 	}
 
-	Value GdtEntry::toJson(Document::AllocatorType& alloc)
-	{
-		Value gdtEntry(kObjectType);
-
-		gdtEntry.AddMember("id", mId, alloc);
-		gdtEntry.AddMember("amount", static_cast<double>(mAmount) / 100.0, alloc);
-		gdtEntry.AddMember("date", Value(mDateString.data(), alloc), alloc);
-		gdtEntry.AddMember("email", Value(mEmail.data(), alloc), alloc);
-		gdtEntry.AddMember("comment", Value(mComment.data(), alloc), alloc);
-		gdtEntry.AddMember("coupon_code", Value(mCouponCode.data(), alloc), alloc);
-		gdtEntry.AddMember("gdt_entry_type_id", static_cast<int>(mGdtEntryType), alloc);
-		gdtEntry.AddMember("factor", mFactor, alloc);
-		gdtEntry.AddMember("amount2", static_cast<double>(mAmount2) / 100.0, alloc);
-		gdtEntry.AddMember("factor2", mFactor2, alloc);
-		gdtEntry.AddMember("gdt", mGDT, alloc);
-
-		return gdtEntry;			
-	}
-
-	/*
-	int					mId;
-        float				mAmount; // normal euro sum
-        std::string			mDateString;
-        std::string         mEmail;
-        std::string			mComment;
-        std::string         mCouponCode;
-        GdtEntryType		mGdtEntryType;
-        float				mFactor;
-        float               mAmount2;
-        float               mFactor2;
-        float				mGDT; // resulting gdt
-	*/
 	bool GdtEntry::operator== (const GdtEntry& b) const
 	{
 		return 
@@ -129,6 +97,20 @@ namespace model {
 			mFactor2 == b.mFactor2 &&
 			mGDT == b.mGDT
 			;
+	}
+
+	long long GdtEntry::getEuroAmount() const
+	{
+		switch(mGdtEntryType) {
+			case GdtEntryType::FORM:
+			case GdtEntryType::CVS:
+			case GdtEntryType::ELOPAGE:
+			case GdtEntryType::DIGISTORE:
+			case GdtEntryType::CVS2:
+			case GdtEntryType::CVS_STAFF_WAGE:
+			return mAmount;
+		}
+		return 0;
 	}
 
 	std::string GdtEntry::getFullComment(Tuple tuple)

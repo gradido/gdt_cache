@@ -12,23 +12,19 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 
 set(INSTALL_BINDIR "bin")
 set(INSTALL_PLUGINDIR "bin")
+set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -D_DEBUG")
 
 FILE(GLOB API "src/api/*.cpp" "src/api/*.h")
 FILE(GLOB MAIN "src/*.cpp" "src/*.h")
+FILE(GLOB VIEW "src/view/*.cpp" "src/view/*.h")
 FILE(GLOB CONTROLLER "src/controller/*.cpp" "src/controller/*.h")
+FILE(GLOB MYSQL "src/mysql/*.cpp" "src/mysql/*.h")
 FILE(GLOB MODEL "src/model/*.cpp" "src/model/*.h")
-FILE(GLOB LIB "src/lib/*.cpp" "src/lib/*.h")
-FILE(GLOB TASK "src/task/*.cpp" "src/task/*.h")
+FILE(GLOB UTILS "src/utils/*.cpp" "src/utils/*.h")
+FILE(GLOB BACKGROUND_TASKS "src/background_tasks/*.cpp" "src/background_tasks/*.h")
+FILE(GLOB LOG "src/logging/*.cpp" "src/logging/*.h")
 
-SET(LOCAL_SRCS ${MAIN} ${CONTROLLER} ${MODEL} ${API} ${LIB} ${TASK})
-
-if(MSVC)
-    source_group("api" FILES ${API})
-    source_group("controller" FILES ${CONTROLLER})
-    source_group("lib" FILES ${LIB})
-    source_group("model" FILES ${MODEL})    
-    source_group("task" FILES ${TASK})
-endif(MSVC)
+SET(LOCAL_SRCS ${MAIN} ${CONTROLLER} ${MODEL} ${VIEW} ${API} ${UTILS} ${TASK} ${BACKGROUND_TASKS} ${LOG} ${MYSQL})
 
 add_subdirectory(third_party/mariadb-connector-c)
 

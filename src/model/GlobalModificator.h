@@ -12,12 +12,14 @@
 
 #include <ctime>
 #include <string>
+#include <vector>
 
 namespace model {
     class GlobalModificator
     {
     public:
         GlobalModificator(int id, const std::string& name, float factor, std::time_t startDate, std::time_t endDate);
+        ~GlobalModificator() {}
         inline int getId() const { return mId;}
         inline const std::string& getName() const {return mName;}
         inline float getFactor() const { return mFactor;}
@@ -35,6 +37,8 @@ namespace model {
         std::time_t mEndDate;
 
     };
+
+    typedef std::vector<GlobalModificator> GlobalModificators;
 }
 
 #endif 
