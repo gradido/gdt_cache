@@ -4,15 +4,10 @@
 #include "logging/Logging.h"
 #include "mysql/Customer.h"
 #include "mysql/GdtEntry.h"
-#include "mysql/GlobalModificator.h"
-#include "mysql/Mysql.h"
 #include "model/Config.h"
-#include "model/KlicktippEntry.h"
 #include "view/GdtEntryList.h"
-#include "controller/GlobalModificators.h"
 #include "utils/Profiler.h"
 #include "background_tasks/UpdateGdtEntryList.h"
-#include "background_tasks/KlicktippApiRequest.h"
 
 #include <lithium_http_client.hh>
 #include <lithium_http_server.hh>
@@ -284,33 +279,6 @@ noexcept
     return UpdateStatus::SKIPPED;
 }
 
-bool CacheServer::reloadGlobalMod(mysql_connection<mysql_functions_blocking> connection, bool ignoreTimeout/* = false*/) noexcept
-{
-    auto now = time(nullptr);
-    // update every minute
-    if(now - mLastUpdateGlobalMods > 60 || ignoreTimeout) {
-        try {
-            std::lock_guard updateLock(mGlobalModUpdateMutex);
-            std::lock_guard accessLock(mGlobalModAccessMutex);
-            auto globalModData = mysql::GlobalModificator::getAll(connection);
-            return mGlobalModsController.updateGlobalModificators(globalModData);
-        } catch(std::runtime_error& ex) {
-            std::string message = "runtime error: ";
-            message += ex.what();
-            LOG_ERROR(message);
-        } catch(std::exception& ex) {
-            std::string message = "library exception: ";
-            message += ex.what();
-            LOG_ERROR(message);
-        }
-        catch(...) {
-            LOG_ERROR("unknown exception");
-        } 
-        mLastUpdateGdtEntries = now;
-    }
-    return false;
-}
-
 CacheServer::UpdateStatus CacheServer::reloadGdtEntry(mysql_connection<mysql_functions_blocking> connection, const std::string& email) noexcept
 {
     try {
@@ -405,21 +373,7 @@ CacheServer::UpdateStatus CacheServer::updateAllowedIps(bool ignoreTimeout) noex
 
 void CacheServer::loadFromDb(li::mysql_connection<li::mysql_functions_blocking> connection)
 {
-    // lock tables to prevent changes from another source while we are working on it
-    // we will not only load the data, we will also check for missing global modificator entries and when we find some, 
-    // we calculate the missing ones and write them back into the db
-    mysql::lockTables({
-        "contacts",
-        "gdt_entries",
-        "global_modificators",
-        "gdt_modificator_entries"
-    }, connection);
-
     auto customers = mysql::Customer::getAll(connection);
-
-    std::lock_guard globalModAccessLock(mGlobalModAccessMutex);
-    auto globalModsData = mysql::GlobalModificator::getAll(connection);
-    mGlobalModsController.updateGlobalModificators(globalModsData);
 
     // check that our email regex pattern is matching all emails from db
     // it is used to filter out malicious requests
@@ -438,9 +392,6 @@ void CacheServer::loadFromDb(li::mysql_connection<li::mysql_functions_blocking> 
     auto gdtEntriesPerEmail = mysql::GdtEntry::getAll(customers, connection);
     printf("[%s] time used for loading all gdt entries from db into memory: %s\n", __FUNCTION__, timeUsed.string().data());
     timeUsed.reset();
-
-    int addedGlobalMods = 0;
-    std::list<model::KlicktippEntry> klicktippEntries;
 
     std::lock_guard gdtEntriesAccessLock(mGdtEntriesAccessMutex);
 

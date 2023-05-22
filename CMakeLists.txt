@@ -14,17 +14,15 @@ set(INSTALL_BINDIR "bin")
 set(INSTALL_PLUGINDIR "bin")
 set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -D_DEBUG")
 
-FILE(GLOB API "src/api/*.cpp" "src/api/*.h")
 FILE(GLOB MAIN "src/*.cpp" "src/*.h")
 FILE(GLOB VIEW "src/view/*.cpp" "src/view/*.h")
-FILE(GLOB CONTROLLER "src/controller/*.cpp" "src/controller/*.h")
 FILE(GLOB MYSQL "src/mysql/*.cpp" "src/mysql/*.h")
 FILE(GLOB MODEL "src/model/*.cpp" "src/model/*.h")
 FILE(GLOB UTILS "src/utils/*.cpp" "src/utils/*.h")
 FILE(GLOB BACKGROUND_TASKS "src/background_tasks/*.cpp" "src/background_tasks/*.h")
 FILE(GLOB LOG "src/logging/*.cpp" "src/logging/*.h")
 
-SET(LOCAL_SRCS ${MAIN} ${CONTROLLER} ${MODEL} ${VIEW} ${API} ${UTILS} ${TASK} ${BACKGROUND_TASKS} ${LOG} ${MYSQL})
+SET(LOCAL_SRCS ${MAIN} ${MODEL} ${VIEW} ${UTILS} ${TASK} ${BACKGROUND_TASKS} ${LOG} ${MYSQL})
 
 IF(WIN32)
 	include(${CMAKE_BINARY_DIR}/conanbuildinfo.cmake)

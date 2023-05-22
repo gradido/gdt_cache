@@ -58,7 +58,6 @@ public:
 
     //! reload gdt entries and customers freshly from db, if last update is older then maxCacheTimeout
     UpdateStatus reloadCacheAfterTimeout(li::mysql_connection<li::mysql_functions_blocking> connection, bool ignoreTimeout = false) noexcept;
-    bool reloadGlobalMod(li::mysql_connection<li::mysql_functions_blocking> connection, bool ignoreTimeout = false) noexcept;
     UpdateStatus reloadGdtEntry(li::mysql_connection<li::mysql_functions_blocking> connection, const std::string& email) noexcept;
 
     //! access allowed ips cache
@@ -90,12 +89,6 @@ protected:
     mutable std::mutex              mGdtEntriesUpdateMutex;
     std::time_t                     mLastUpdateGdtEntries;
 
-    //! global mods
-    controller::GlobalModificators  mGlobalModsController;
-    mutable std::mutex              mGlobalModAccessMutex;
-    mutable std::mutex              mGlobalModUpdateMutex;
-    std::time_t                     mLastUpdateGlobalMods;
-
     //! ip from allowed hosts from config
     std::vector<std::string>        mAllowedIps;
     mutable std::shared_mutex       mAllowedIpsMutex;
@@ -108,8 +101,6 @@ protected:
 
     //! Cache Reload Worker
     UpdateCacheWorker               mUpdateCacheWorker;
-    KlicktippApiRequestWorker       mKlicktippApiRequestsWorker;
-
 };
 
 #endif //__GDT_CACHE_CACHE_SINGLETON_H
