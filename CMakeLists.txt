@@ -30,18 +30,24 @@ if(MSVC)
     source_group("task" FILES ${TASK})
 endif(MSVC)
 
-add_subdirectory(third_party/mariadb-connector-c)
-
-find_package(CURL REQUIRED)
-find_package(Threads REQUIRED)
-find_package(OpenSSL REQUIRED)
-find_package(Boost REQUIRED context)
-
-include_directories(${CURL_INCLUDE_DIRS} ${MYSQL_INCLUDE_DIR})
-
-set(LIBS  ${CURL_LIBRARIES} libmariadb
+IF(WIN32)
+	include(${CMAKE_BINARY_DIR}/conanbuildinfo.cmake)
+	conan_basic_setup()
+    set(LIBS ${CONAN_LIBS})
+ELSE()
+    find_package(CURL REQUIRED)
+    find_package(Threads REQUIRED)
+    find_package(OpenSSL REQUIRED)
+    find_package(Boost REQUIRED context)
+    include_directories(${CURL_INCLUDE_DIRS})
+    set(LIBS  ${CURL_LIBRARIES}
           ${Boost_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT}
           ${OPENSSL_LIBRARIES})
+ENDIF()
+set(LIBS ${LIBS} libmariadb) 
+
+add_subdirectory(third_party/mariadb-connector-c)
+include_directories(${MYSQL_INCLUDE_DIR})
 
 # Directory where lithium headers are located if not in the default include path.
 include_directories(

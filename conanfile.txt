@@ -1,0 +1,12 @@
+[requires]
+libcurl/8.0.1 
+gtest/1.12.1
+pthreads4w/3.0.0 
+openssl/3.1.0
+boost/1.81.0
+
+[options]
+
+
+[generators]
+cmake
