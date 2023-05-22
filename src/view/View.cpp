@@ -70,15 +70,6 @@ namespace view {
         listGDTEntries.AddMember("state", "success", alloc);
 
 		return listGDTEntries;
-    }
-
-    template<> Value toJson<model::KlicktippEntry>(const model::KlicktippEntry& data, Document::AllocatorType& alloc)
-    {
-        Value json(kObjectType);
-        json.AddMember("email", Value(data.email.data(), alloc), alloc);
-        json.AddMember("euroSum", data.euroSum, alloc);
-        json.AddMember("gdtSum", data.gdtSum, alloc);
-        return json;
-    }
+    }    
 }
 

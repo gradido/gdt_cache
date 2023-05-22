@@ -4,7 +4,6 @@
 #include "GdtEntry.h"
 
 #include "../utils/Profiler.h"
-#include "GlobalModificator.h"
 #include <lithium_mysql.hh>
 #include <list>
 #include <set>
@@ -29,13 +28,6 @@ namespace model {
 
 		//! compare dates and insert where it is in order
 		void insertGdtEntry(const GdtEntry& gdtEntry);
-
-		//! calculate global mod and return new gdt entry, new gdt entry is inserted 
-		void calculateAndInsertGlobalModificatorEntry(
-			const GlobalModificator& globalMod, 
-			const std::string& email,
-			li::mysql_connection<li::mysql_functions_blocking> connection
-		);
 
 		//! \return true if last update is older than Config::minCacheTimeout
 		bool canUpdate();

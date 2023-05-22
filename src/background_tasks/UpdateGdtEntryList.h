@@ -3,7 +3,6 @@
 
 #include <string>
 #include "../model/GdtEntryList.h"
-#include "../controller/GlobalModificators.h"
 #include <lithium_mysql.hh>
 
 namespace task

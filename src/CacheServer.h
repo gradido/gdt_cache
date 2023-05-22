@@ -9,7 +9,6 @@
 #include "model/GdtEntryList.h"
 #include "model/Customer.h"
 #include "background_tasks/UpdateCacheWorker.h"
-#include "background_tasks/KlicktippApiRequestsWorker.h"
 #include "view/View.h"
 
 

@@ -28,7 +28,7 @@ using namespace rapidjson;
 using namespace std::chrono_literals;
 
 CacheServer::CacheServer()
-: mLastUpdateGdtEntries(0), mLastUpdateGlobalMods(0), mLastUpdateAllowedIps(0)
+: mLastUpdateGdtEntries(0), mLastUpdateAllowedIps(0)
 {
 }
 
@@ -145,7 +145,6 @@ bool CacheServer::initializeFromPhp()
     printf("[%s] used time collecting gdt entries: %s\n", __FUNCTION__, timeUsed.string().data());
 
     mUpdateCacheWorker.startThread();
-    mKlicktippApiRequestsWorker.startThread();
     return true;
 }
 
@@ -155,7 +154,6 @@ void CacheServer::initializeFromDb()
     loadFromDb(dbSession);
     mLastUpdateGdtEntries = time(nullptr);
     mUpdateCacheWorker.startThread();
-    mKlicktippApiRequestsWorker.startThread();
 }
 
 std::string CacheServer::listPerEmailApi(
@@ -292,8 +290,7 @@ CacheServer::UpdateStatus CacheServer::reloadGdtEntry(mysql_connection<mysql_fun
         auto customer = mysql::Customer::getByEmail(email, connection);
         if(!customer) customer = std::make_shared<model::Customer>(email);
         auto gdtEntriesList = mysql::GdtEntry::getByCustomer(customer, connection);
-        std::lock_guard _lockGlobalMod(mGlobalModAccessMutex);
-        auto addedMissingGlobCount = mGlobalModsController.checkForMissingGlobalMod(customer, gdtEntriesList, connection);
+        
         for(auto email: customer->getEmails()) {
             auto it = mGdtEntriesByEmails.find(email);
             if(it == mGdtEntriesByEmails.end()) {
@@ -303,8 +300,8 @@ CacheServer::UpdateStatus CacheServer::reloadGdtEntry(mysql_connection<mysql_fun
             }
         }
         if(gdtEntriesList->getTotalCount() > 0) {
-            printf("[UpdateGdtEntryList] %s timeUsed for loading %ld contacts, %d gdt entries and %d global mod\n",
-                timeUsed.string().data(), customer->getEmails().size(), gdtEntriesList->getTotalCount(), addedMissingGlobCount
+            printf("[UpdateGdtEntryList] %s timeUsed for loading %ld contacts, %d gdt entries\n",
+                timeUsed.string().data(), customer->getEmails().size(), gdtEntriesList->getTotalCount()
             );
         }
         return UpdateStatus::OK;
@@ -394,101 +391,22 @@ void CacheServer::loadFromDb(li::mysql_connection<li::mysql_functions_blocking> 
     timeUsed.reset();
 
     std::lock_guard gdtEntriesAccessLock(mGdtEntriesAccessMutex);
-
-    // copy old values to compare for updating changed customers klicktipp tags
-    // make only sense if there are already old datas
-    if(mGdtEntriesByEmails.size()) {
-        for (auto customerIdPair : customers) {
-            auto customer = customerIdPair.second;
-            const auto& mainEmail = customer->getMainEmail();
-            if(!mainEmail.size()) {
-                std::string message = "empty main email";
-                if(customer->getFirstEmail().size()) {
-                    message += " with first email: " + customer->getFirstEmail().substr(0, 3);
-                    message += " with id: " + std::to_string(customer->getId());
-                } else {
-                    message += " and empty first email, id: " + std::to_string(customer->getId());
-                }
-                LOG_ERROR(message);
-                continue;
-            }
-            auto it = mGdtEntriesByEmails.find(mainEmail);
-            if(it == mGdtEntriesByEmails.end()) {
-                std::string message = "main email " + mainEmail.substr(0,3) + " not found";
-                LOG_ERROR(message);
-                continue;
-            }
-            auto gdtEntryList = it->second;
-            // need correct email address
-            klicktippEntries.push_back(model::KlicktippEntry(
-                mainEmail, 
-                gdtEntryList->calculateEuroSum(),
-                gdtEntryList->getGdtSum()
-            ));
-        }
-    }
-
     mGdtEntriesByEmails.clear();    
     
-    auto klicktippIt = klicktippEntries.begin();
-    bool disableKlicktippBecauseOfErrors = false;
-    auto klicktippApiRequest = std::make_shared<task::KlicktippApiRequest>();
-    // sort together and check for global mod updates
+    // sort together
+    // for every email there is a map with gdt entries belonging to the customer (not only to this email)
     for (auto customer : customers)
     {
         auto email = customer.second->getEmails().front();
-        auto gdtEntriesList = gdtEntriesPerEmail.find(email)->second;
-        int oldAddedGlobalMods = addedGlobalMods;
-        
-        addedGlobalMods += mGlobalModsController.checkForMissingGlobalMod(customer.second, gdtEntriesList, connection);
-        printf("\rcalculated globalMods: %d", addedGlobalMods);        
-
-        //gdtEntriesList
-        const auto& mainEmail = customer.second->getMainEmail();
-        
-        if(mainEmail.size() && !disableKlicktippBecauseOfErrors && klicktippIt != klicktippEntries.end()) {
-            if(mainEmail != klicktippIt->email) {
-                std::string message = "[disable klicktipp] compare for clicktipp, incorrect list order with mainEmail: ";
-                message += mainEmail.substr(0,3) + " and other email: " + klicktippIt->email.substr(0,3);
-                LOG_ERROR(message);
-                disableKlicktippBecauseOfErrors = true;
-            } else {
-                if(gdtEntriesList->calculateEuroSum() == klicktippIt->euroSum &&
-                   gdtEntriesList->getGdtSum() == klicktippIt->gdtSum) {
-                    klicktippIt = klicktippEntries.erase(klicktippIt);
-                } else {
-                    klicktippIt++;
-                }
+        auto it = gdtEntriesPerEmail.find(email);
+        if(it == gdtEntriesPerEmail.end()) {
+            LOG_ERROR("cannot find email in gdt entries map");
+        } else {
+            for (auto email : customer.second->getEmails()) {
+                mGdtEntriesByEmails.insert({email, it->second});
             }
-        } else if(mainEmail.size() && addedGlobalMods > oldAddedGlobalMods) {
-            klicktippApiRequest->addKlicktippEntry({mainEmail, gdtEntriesList->calculateEuroSum(), gdtEntriesList->getGdtSum()});
-        }
-        for (auto email : customer.second->getEmails()) {
-            mGdtEntriesByEmails.insert({email, gdtEntriesPerEmail.find(email)->second});
         }
     }
-    printf("\n");
-    for(auto klicktippEntry: klicktippEntries) {
-        klicktippApiRequest->addKlicktippEntry(klicktippEntry);
-    }
-    
-    mysql::unlockTables(connection);
-    if(klicktippApiRequest->getCount()) {
-        mKlicktippApiRequestsWorker.pushTask(klicktippApiRequest);
-    }
-    printf("%ld changed gdt entries for klicktipp tag update\n", klicktippApiRequest->getCount());
-    if (addedGlobalMods)
-    {
-        printf("\n");
-        printf("[%s] time used for calculate %d missing global mods: %s\n",
-               __FUNCTION__, addedGlobalMods, timeUsed.string().data());
-    }
-    else
-    {
-        printf("[%s] time used for checking for missing global mods: %s\n",
-               __FUNCTION__, timeUsed.string().data());
-    }
-
 }
 
 Document CacheServer::_listPerEmailApi(
