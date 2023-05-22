@@ -3,7 +3,7 @@
 
 #include "GdtEntry.h"
 
-#include "../lib/Profiler.h"
+#include "../utils/Profiler.h"
 #include "GlobalModificator.h"
 #include <lithium_mysql.hh>
 #include <list>
@@ -12,16 +12,9 @@
 
 namespace model {
 	
-	class GdtEntryList : public Base
+	class GdtEntryList
 	{
 	public:
-
-		enum class OrderDirections 
-		{
-			ASC,
-			DESC
-		};
-
 		GdtEntryList(rapidjson::Value& gdtEntryList);
 		GdtEntryList();
 		~GdtEntryList();
@@ -44,28 +37,16 @@ namespace model {
 			li::mysql_connection<li::mysql_functions_blocking> connection
 		);
 
-		rapidjson::Value toJson(rapidjson::Document::AllocatorType& alloc);
-		rapidjson::Value toJson(rapidjson::Document::AllocatorType& alloc, Profiler timeUsed);
-		rapidjson::Value toJson(
-			rapidjson::Document::AllocatorType& alloc, 
-			Profiler timeUsed, 
-			int page, 
-			int count, 
-			OrderDirections order
-		);
-		const char* getTypename() { return "GdtEntryList"; }
-		static OrderDirections orderDirectionFromString(const std::string& orderDirection);
-		static const char* orderDirectionsToString(OrderDirections dir);
-
 		//! \return true if last update is older than Config::minCacheTimeout
 		bool canUpdate();
 		//! \return true if last update is older than 4h
 		bool shouldUpdate();
 
-		inline size_t getGdtEntriesCount() { return mGdtEntries.size();}
-		inline int getTotalCount() {return mTotalCount;}
+		inline size_t getGdtEntriesCount() const { return mGdtEntries.size();}
+		inline int getTotalCount() const {return mTotalCount;}
 		inline const std::list<GdtEntry>& getGdtEntries() const {return mGdtEntries;}
 		inline double getGdtSum() const { return mTotalGDTSum;}
+		double calculateEuroSum() const;
 
 		// todo calculate sum
 		// update with new data
@@ -76,6 +57,8 @@ namespace model {
 		double mTotalGDTSum;
 		std::time_t mLastUpdate;
 	};
+	typedef std::shared_ptr<model::GdtEntryList> GdtEntryListPtr;
+	typedef std::unordered_map<std::string, model::GdtEntryListPtr> EmailGdtEntriesListMap;
 }
 
 #endif //__GRADIDO_DESKTOP_MODEL_GRAPHQL_GDT_ENTRY_LIST_H

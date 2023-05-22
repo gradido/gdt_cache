@@ -11,7 +11,7 @@ using namespace rapidjson;
 namespace model {
 
     Config::Config(const char* configFilename)
-    : minCacheTimeout(10)
+    : port(8710), minCacheTimeout(10), maxCacheTimeout(60 * 60 * 4)
     {
         std::ifstream ifsConfig(configFilename);
         IStreamWrapper iswConfig(ifsConfig);
@@ -21,10 +21,29 @@ namespace model {
         if(configJson.HasMember("gdtServerUrl") && configJson["gdtServerUrl"].IsString()) {
             gdtServerUrl = configJson["gdtServerUrl"].GetString();
         }
-        if(configJson.HasMember("minCacheTimeout") && configJson["minCacheTimeout"].IsInt()) {
-            minCacheTimeout = configJson["minCacheTimeout"].GetInt();
+        if(configJson.HasMember("minCacheTimeout")) {            
+            if(!configJson["minCacheTimeout"].IsInt()) { 
+                printf("[Config] minCacheTimeout isn't int\n");
+            } else {
+                minCacheTimeout = configJson["minCacheTimeout"].GetInt();
+            }
+        }
+        if(configJson.HasMember("maxCacheTimeout")) {
+            if(!configJson["maxCacheTimeout"].IsInt()) {
+                printf("[Config] maxCacheTimeout isn't int\n");
+            } else {
+                maxCacheTimeout = configJson["maxCacheTimeout"].GetInt();
+            }
+        }
+        if(configJson.HasMember("port")) {
+            if(!configJson["port"].IsInt()) {
+                printf("[Config] port isn't int\n");
+            } else {
+                port = configJson["port"].GetInt();
+            }
         }
 
+ 
         // load db config
         if(configJson.HasMember("db") && configJson["db"].IsObject()) {
             const auto& db = configJson["db"].GetObject();

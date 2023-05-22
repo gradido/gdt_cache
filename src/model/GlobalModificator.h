@@ -12,17 +12,23 @@
 
 #include <ctime>
 #include <string>
+#include <vector>
 
 namespace model {
     class GlobalModificator
     {
     public:
         GlobalModificator(int id, const std::string& name, float factor, std::time_t startDate, std::time_t endDate);
+        ~GlobalModificator() {}
         inline int getId() const { return mId;}
         inline const std::string& getName() const {return mName;}
         inline float getFactor() const { return mFactor;}
         inline std::time_t getStartDate() const {return mStartDate;}
         inline std::time_t getEndDate() const {return mEndDate;}        
+
+        bool operator==(const GlobalModificator& b) const;
+        inline bool operator!=(const GlobalModificator& b) const {return !(*this == b);}
+
     protected:
         int mId;
         std::string mName;
@@ -31,6 +37,8 @@ namespace model {
         std::time_t mEndDate;
 
     };
+
+    typedef std::vector<GlobalModificator> GlobalModificators;
 }
 
 #endif 

@@ -1,14 +1,16 @@
 #include <lithium_http_server.hh>
 
-#include "GdtEntriesCache.h"
-#include "ErrorContainer.h"
-#include "controller/UpdateManager.h"
+#include "CacheServer.h"
+#include "logging/Logging.h"
+#include "logging/ContainerSingleton.h"
 #include "model/Config.h"
 #include "main.h"
+#include "utils/Profiler.h"
 #include "boost/lexical_cast/bad_lexical_cast.hpp"
 
 #include <chrono>
 #include <thread>
+#include <iostream>
 
 using namespace li;
 using namespace std::chrono_literals;
@@ -16,16 +18,18 @@ using namespace std::chrono_literals;
 void checkIpAuthorized(http_request& request)
 {
     auto clientIp = request.ip_address();
-    printf("client ip: '%s', size: %d\n", clientIp.data(), clientIp.size());
-    if(clientIp == "::") return;
-    auto um = controller::UpdateManager::getInstance();
+    printf("client ip: '%s', size: %ld\n", clientIp.data(), clientIp.size());
+    std::string localhost_ipfv6 = "::";
+    localhost_ipfv6.resize(INET6_ADDRSTRLEN);
+    if(clientIp == localhost_ipfv6) return;
+    auto cs = CacheServer::getInstance();
     int countTrials = 0;
     while(countTrials < 2) {        
         countTrials++;
         // compare client ip with allowed ips
-        for(int i = 0; i < um->getAllowedIpsCount(); i++) {
-            printf("compare %s == %s = %d\n", clientIp.data(), um->getAllowedIp(i).data(), clientIp == um->getAllowedIp(i));
-            if(clientIp == um->getAllowedIp(i)) {
+        for(int i = 0; i < cs->getAllowedIpsCount(); i++) {
+            printf("compare %s == %s = %d\n", clientIp.data(), cs->getAllowedIp(i).data(), clientIp == cs->getAllowedIp(i));
+            if(clientIp == cs->getAllowedIp(i)) {
                 // found match, return to request
                 return;
             }
@@ -33,15 +37,15 @@ void checkIpAuthorized(http_request& request)
         if(countTrials >= 2) break;
 
         // no match found, update allowed IPs just in case caller came from DNS and since last update ip was updated
-        controller::UpdateStatus status;
+        CacheServer::UpdateStatus status;
         int updateTriesLeft = 10;
         // wait for it, if update is already running
-        while((status = um->updateAllowedIps()) == controller::UpdateStatus::RUNNING && updateTriesLeft) {
+        while((status = cs->updateAllowedIps(true)) == CacheServer::UpdateStatus::RUNNING && updateTriesLeft) {
             std::this_thread::sleep_for(10ms);
             updateTriesLeft--;
         }
         // we don't wait any longer for update
-        if(updateTriesLeft <= 0 || status == controller::UpdateStatus::ERROR) {
+        if(updateTriesLeft <= 0 || status == CacheServer::UpdateStatus::ERROR) {
             throw http_error::unauthorized("{\"state\":\"error\"}");
         }
     }    
@@ -50,26 +54,29 @@ void checkIpAuthorized(http_request& request)
 
 int main()
 {
+    Profiler timeUsed;
     // load config
     g_Config = new model::Config("config.json");
-    controller::UpdateManager::getInstance()->updateAllowedIps();
     
     // load data form gdt server
-    auto ge = GdtEntriesCache::getInstance();
+    auto cs = CacheServer::getInstance();
+    cs->updateAllowedIps(true);
     try {
-        if(!ge->initializeFromDb()) {
-            fprintf(stderr, "error initializing gdt entries cache\n");
-            return -1;
-        }
+        cs->initializeFromDb();
     } catch(boost::bad_lexical_cast& ex) {
-        fprintf(stderr, "exception thrown on initialize: bad lexical cast from source: %s to target: %s\n",
-            ex.source_type().name(), ex.target_type().name());
+        std::string message = "exception thrown on initialize: bad lexical cast from source: ";
+        message += ex.source_type().name();
+        message += " to target: ";
+        message += ex.target_type().name();
+        LOG_ERROR(message);
         return -3;
     } catch(std::exception& ex) {
-        fprintf(stderr, "exception thrown on initialize: %s\n", ex.what());
+        std::string message = "exception thrown on initialize: ";
+        message += ex.what();
+        LOG_ERROR(message);
         return -2;
     }    
-    auto ec = ErrorContainer::getInstance();
+    auto ec = logging::ContainerSingleton::getInstance();
     http_api api;
     api.get("/status") = [&](http_request& request, http_response& response) 
     {
@@ -89,19 +96,19 @@ int main()
         checkIpAuthorized(request);
         auto params = request.url_parameters(s::email = std::string());
         response.set_header("content-type", "application/json");
-        response.write(ge->listPerEmailApi(params.email));        
+        response.write(cs->listPerEmailApi(params.email));        
     };
     api.get("/listPerEmailApi/{{email}}/{{page}}") = [&](http_request& request, http_response& response) {
         checkIpAuthorized(request);
         auto params = request.url_parameters(s::email = std::string(), s::page = int());
         response.set_header("content-type", "application/json");
-        response.write(ge->listPerEmailApi(params.email, params.page));        
+        response.write(cs->listPerEmailApi(params.email, params.page));        
     };
     api.get("/listPerEmailApi/{{email}}/{{page}}/{{count}}") = [&](http_request& request, http_response& response) {
         checkIpAuthorized(request);
         auto params = request.url_parameters(s::email = std::string(), s::page = int(), s::count = int());
         response.set_header("content-type", "application/json");
-        response.write(ge->listPerEmailApi(params.email, params.page, params.count));        
+        response.write(cs->listPerEmailApi(params.email, params.page, params.count));        
     };
     api.get("/listPerEmailApi/{{email}}/{{page}}/{{count}}/{{orderDirection}}")
         = [&](http_request& request, http_response& response) {
@@ -114,11 +121,11 @@ int main()
             );
             response.set_header("content-type", "application/json");
             response.write(
-                ge->listPerEmailApi(
+                cs->listPerEmailApi(
                     params.email, 
                     params.page, 
                     params.count, 
-                    model::GdtEntryList::orderDirectionFromString(params.orderDirection)
+                    view::orderDirectionFromString(params.orderDirection)
                 )
             );            
         };
@@ -127,6 +134,16 @@ int main()
         response.set_header("content-type", "application/json");
         response.write("{\"state\":\"error\",\"msg\":\"no post\"}");        
     };
+    api.get("/sumPerEmailApi/{{email}}") = [&](http_request& request, http_response& response) {
+        checkIpAuthorized(request);
+        response.set_header("content-type", "application/json");
+        auto params = request.url_parameters(s::email = std::string());
+        if(params.email == "") {
+            response.write("{\"state\":\"error\",\"msg\":\"parameter error\"}");
+        } else {
+            response.write(cs->sumPerEmailApi(params.email));
+        }        
+    };
     api.post("/sumPerEmailApi") = [&](http_request& request, http_response& response) {
         checkIpAuthorized(request);
         response.set_header("content-type", "application/json");
@@ -134,12 +151,14 @@ int main()
         if(!params.email || params.email.value() == "") {
             response.write("{\"state\":\"error\",\"msg\":\"parameter error\"}");
         } else {
-            response.write(ge->sumPerEmailApi(params.email.value()));
+            response.write(cs->sumPerEmailApi(params.email.value()));
         }        
     };
-
+    std::string info = "time for startup preparations: ";
+    info += timeUsed.string();
+    LOG_INFORMATION(info);
     // start http server
-    http_serve(api, 8710);
+    http_serve(api, g_Config->port);
 
     delete g_Config;
     g_Config = nullptr;

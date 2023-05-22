@@ -3,7 +3,8 @@
 
 #include <string>
 #include <vector>
-
+#include <map>
+#include <memory>
 
 namespace model 
 {
@@ -21,10 +22,16 @@ namespace model
         std::string getEmailsString() const;
         inline std::string getFirstEmail() { if(!mEmails.size()) return ""; return mEmails[0];}
         inline int getId() {return mId;}
+        inline void setMainEmail(const std::string& email) {mMainEmail = email;}
+        inline const std::string& getMainEmail() const {return mMainEmail;}
     protected:
         int mId;
         std::vector<std::string> mEmails;
+        std::string mMainEmail;
     };
+
+    typedef std::map<int, std::shared_ptr<Customer>> CustomersMap;
+    typedef std::shared_ptr<Customer> CustomerPtr;
 }
 
 #endif //__GDT_CACHE_MODEL_CUSTOMER_H

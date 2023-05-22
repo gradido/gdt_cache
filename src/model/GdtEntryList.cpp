@@ -1,8 +1,8 @@
 #include "GdtEntryList.h"
-#include "../lib/RapidjsonHelper.h"
+#include "../utils/RapidjsonHelper.h"
 #include "../GradidoBlockchainException.h"
 #include "Config.h"
-#include "../ErrorContainer.h"
+#include "../logging/Logging.h"
 
 #include <cmath>
 
@@ -134,116 +134,7 @@ namespace model {
 		// todo: maybe optimize in future to save memory using reference instead of copy
 		insertGdtEntry(globalModGdtEntry);
 	}
-
-	Value GdtEntryList::toJson(rapidjson::Document::AllocatorType& alloc)
-	{
-		Value listGDTEntries(kObjectType);
-
-		listGDTEntries.AddMember("count", mTotalCount, alloc);
-		Value gdtEntries(kArrayType);
-
-		for (auto& gdtEntry : mGdtEntries) {
-			gdtEntries.PushBack(gdtEntry.toJson(alloc), alloc);
-		}			
-
-		listGDTEntries.AddMember("gdtEntries", gdtEntries, alloc);
-		listGDTEntries.AddMember("gdtSum", mTotalGDTSum, alloc);
-
-		return listGDTEntries;
-	}
-
-	Value GdtEntryList::toJson(Document::AllocatorType& alloc, Profiler timeUsed)
-	{
-		auto result = toJson(alloc);
-		
-		result.AddMember("state", "success", alloc);
-		result.AddMember("timeUsed", timeUsed.seconds(), alloc);
-
-		return result;
-	}
-
-	Value GdtEntryList::toJson(
-		Document::AllocatorType& alloc, 
-		Profiler timeUsed, 
-		int page, 
-		int count, 
-		OrderDirections order
-	)
-	{
-		Value listGDTEntries(kObjectType);
-
-		listGDTEntries.AddMember("count", mTotalCount, alloc);
-		Value gdtEntries(kArrayType);
-
-		// only go into loop if enough gdt entries exist for return at least one
-		if(mGdtEntries.size() > (page-1)*count) 
-		{
-			// start at the beginning of list (smallest date) by order == ASC
-			auto it = mGdtEntries.begin();
-			// start at the end of list (largest date) by order == DESC
-			if(order == OrderDirections::DESC) {
-				it = mGdtEntries.end();
-				// end is actually after the last entry so we need to move on step back
-				it--;
-			}
-			
-			// move iterator to position where to start collecting gdt entries
-			// if client request at least page 2
-			if(page > 1) {					
-				// for every entry to skip
-				for(int i = 0; i < (page-1) * count; i++) {
-					if(order == OrderDirections::ASC) {
-						// increment iterator by order == ASC
-						it++;
-					} else {
-						// decrement iterator by order == DESC
-						it--;
-					}
-				}					
-			}
-			// collect max count gdt entries
-			for(int i = 0; i < count; i++) 
-			{
-				gdtEntries.PushBack(it->toJson(alloc), alloc);	
-				if(order == OrderDirections::ASC) {
-					// increment iterator by order == ASC
-					it++;
-					// end is already past the last entry so we exit here
-					if(it == mGdtEntries.end()) break;
-				} else {
-					// begin is the first entry, we cannot further decrement here
-					if(it == mGdtEntries.begin()) break;
-					// decrement iterator by order == DESC
-					it--;					
-				}
-			}
-		}
-
-		listGDTEntries.AddMember("gdtEntries", gdtEntries, alloc);
-		listGDTEntries.AddMember("gdtSum", mTotalGDTSum, alloc);
-		listGDTEntries.AddMember("state", "success", alloc);
-		listGDTEntries.AddMember("timeUsed", static_cast<float>(timeUsed.seconds()), alloc);
-
-		return listGDTEntries;
-	}
-
-
-	GdtEntryList::OrderDirections GdtEntryList::orderDirectionFromString(const std::string& orderDirection)
-	{
-		if(orderDirection == "ASC") return OrderDirections::ASC;
-		if(orderDirection == "DESC") return OrderDirections::DESC;
-		//fprintf(stderr, "[%s] invalid order direction: %s, use ASC as default\n", __FUNCTION__, orderDirection.data());
-		return OrderDirections::ASC;
-	}
-	const char* GdtEntryList::orderDirectionsToString(GdtEntryList::OrderDirections dir)
-	{
-		switch(dir) {
-			case OrderDirections::ASC: return "ASC";
-			case OrderDirections::DESC: return "DESC";
-		}
-		throw GradidoUnhandledEnum("GdtEntryList::orderDirectionsToString", "OrderDirections", static_cast<int>(dir));
-	}
-
+	
 	bool GdtEntryList::canUpdate()
 	{
 		return (std::time(nullptr) - mLastUpdate) > g_Config->minCacheTimeout;
@@ -251,7 +142,16 @@ namespace model {
 
 	bool GdtEntryList::shouldUpdate()
 	{
-		return (std::time(nullptr) - mLastUpdate) > 60 * 60 * 4;
+		return (std::time(nullptr) - mLastUpdate) > 60 * 1;//60 * 60 * 4;
+	}
+
+	double GdtEntryList::calculateEuroSum() const
+	{
+		long long euroSumCent = 0;
+		for(auto& gdtEntry: mGdtEntries) {
+			euroSumCent += gdtEntry.getEuroAmount();
+		}
+		return static_cast<double>(euroSumCent) / 100.0;
 	}
 
 }
