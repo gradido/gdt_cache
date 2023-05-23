@@ -40,6 +40,7 @@ namespace view {
             std::stringstream out;
             out.precision(2);
             out << "{"
+                << "\"state\":\"success\","
                 << "\"count\":" << data.getTotalCount() << ","
                 << "\"gdtEntries\":["
                 ;
@@ -93,9 +94,8 @@ namespace view {
                 }
             }
 
-            out 
+            out << "],"
                 << "\"gdtSum\":" << std::fixed << data.getGdtSum() << ","
-                << "\"state\":\"success\","
                 << "\"timeUsed\":" << timeUsed.seconds()
                 << "}";
 
