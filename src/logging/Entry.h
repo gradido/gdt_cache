@@ -2,7 +2,6 @@
 #define __GDT_CACHE_LOG_ENTRY
 
 #include <string>
-#include <source_location>
 #include <iostream>
 
 namespace logging {
