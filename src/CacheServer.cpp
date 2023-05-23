@@ -177,29 +177,22 @@ std::string CacheServer::listPerEmailApi(
             if(it->second->canUpdate()) {
                 mUpdateCacheWorker.pushTask(std::make_shared<task::UpdateGdtEntryList>(email));
             }
-            // needed because of memory allocator
-            Document baseJson(kObjectType);
-            auto resultJson = view::GdtEntryList::toJson(*it->second, baseJson.GetAllocator(), timeUsed, page, count, order);
+            std::string resultJsonString = view::GdtEntryList::toJsonString(*it->second, timeUsed, page, count, order);
             _lock.unlock();
-            //printf("result allocator size: %d %d kByte\n", baseJson.GetAllocator().Size(), baseJson.GetAllocator().Size() / 1024);
-            StringBuffer buffer;
-            Writer<StringBuffer> writer(buffer);
-            //writer.SetMaxDecimalPlaces(2); // leads to wrong results, it simply cut the excess, not round
-            resultJson.Accept(writer);
-            //printf("string buffer size: %d %d kByte\n", buffer.GetSize(), buffer.GetSize() / 1024);
+            
             // 50 * 1024 = hardcoded output buffer size from lithium
-            if(buffer.GetSize() > 50 * 1024) {
+            if(resultJsonString.size() > 50 * 1024) {
                 auto errorMetaMap = mmm(
                     s::state = "error",
                     s::error = "output to big, please retry with less count",
                     s::details = mmm(
                         s::count = count,
-                        s::overflow = buffer.GetSize()-50 * 1024
+                        s::overflow = resultJsonString.size()-50 * 1024
                     )
                 );                
                 return json_encode(errorMetaMap);
             }
-            return buffer.GetString();
+            return resultJsonString;
         }
 
     } catch(std::system_error& ex) {
@@ -233,7 +226,7 @@ std::string CacheServer::sumPerEmailApi(const std::string &email)
             out << "{\"state\":\"success\",\"sum\":" 
                 << std::fixed << it->second->getGdtSum()
                 << ",\"count\":"
-                << std::fixed << it->second->getTotalCount()
+                << it->second->getTotalCount()
                 << ",\"time\":" << timeUsed.seconds() << "}";
             return out.str();
         }

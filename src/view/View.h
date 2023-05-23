@@ -18,6 +18,10 @@ namespace view {
     template<class T> rapidjson::Value toJson(const T& data, rapidjson::Document::AllocatorType& alloc);
     template<> rapidjson::Value toJson<model::GdtEntry>(const model::GdtEntry& data, rapidjson::Document::AllocatorType& alloc);
     template<> rapidjson::Value toJson<model::GdtEntryList>(const model::GdtEntryList& data, rapidjson::Document::AllocatorType& alloc);
+
+    template<class T> std::string toJsonString(const T& data);
+    template<> std::string toJsonString<model::GdtEntry>(const model::GdtEntry& data);
+    template<> std::string toJsonString<model::GdtEntryList>(const model::GdtEntryList& data);
 }
 
 #endif //__GDT_CACHE_VIEW_VIEW_H
