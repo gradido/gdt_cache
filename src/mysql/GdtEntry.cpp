@@ -28,7 +28,8 @@ namespace mysql {
 
         model::EmailGdtEntriesListMap getAll(
             model::CustomersMap& customers,
-            li::mysql_connection<li::mysql_functions_blocking> connection
+            li::mysql_connection<li::mysql_functions_blocking> connection,
+            std::vector<std::string>& emailsNotInCustomer
         )
         {
             model::EmailGdtEntriesListMap gdtEntries;
@@ -48,14 +49,11 @@ namespace mysql {
                     continue;
 
                 auto it = gdtEntries.find(entry.getEmail());
+                // email isn't already a contact
                 if (it == gdtEntries.end())
                 {
                     it = gdtEntries.insert({entry.getEmail(), std::make_shared<model::GdtEntryList>()}).first;
-                    std::string message = "missing ";
-                    // only the first three characters for privacy reasons
-                    message += entry.getEmail().substr(0, 3);
-                    message += " email in contacts table, cannot check global mods for them";
-                    LOG_ERROR(message);
+                    emailsNotInCustomer.push_back(entry.getEmail());
                 }
                 it->second->addGdtEntry(entry);                
             }

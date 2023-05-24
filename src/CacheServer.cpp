@@ -379,7 +379,8 @@ void CacheServer::loadFromDb(li::mysql_connection<li::mysql_functions_blocking> 
     }
 
     Profiler timeUsed;
-    auto gdtEntriesPerEmail = mysql::GdtEntry::getAll(customers, connection);
+    std::vector<std::string> emailsNotInCustomer;
+    auto gdtEntriesPerEmail = mysql::GdtEntry::getAll(customers, connection, emailsNotInCustomer);
     printf("[%s] time used for loading all gdt entries from db into memory: %s\n", __FUNCTION__, timeUsed.string().data());
     timeUsed.reset();
 
@@ -398,6 +399,14 @@ void CacheServer::loadFromDb(li::mysql_connection<li::mysql_functions_blocking> 
             for (auto email : customer.second->getEmails()) {
                 mGdtEntriesByEmails.insert({email, it->second});
             }
+        }
+    }
+    for(auto email: emailsNotInCustomer) {
+        auto it = gdtEntriesPerEmail.find(email);
+        if(it == gdtEntriesPerEmail.end()) {
+            LOG_ERROR("cannot find email in gdt entries map");
+        } else {
+            mGdtEntriesByEmails.insert({email, it->second});
         }
     }
 }

@@ -18,7 +18,8 @@ namespace mysql {
         //! \param customers customer map for sorting the results by customer
         model::EmailGdtEntriesListMap getAll(
             model::CustomersMap& customers,
-            li::mysql_connection<li::mysql_functions_blocking> connection
+            li::mysql_connection<li::mysql_functions_blocking> connection,
+            std::vector<std::string>& emailsNotInCustomer
         );
     }
 }
