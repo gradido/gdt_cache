@@ -18,7 +18,11 @@ using namespace std::chrono_literals;
 void checkIpAuthorized(http_request& request)
 {
     auto clientIp = request.ip_address();
-    printf("client ip: '%s', size: %ld\n", clientIp.data(), clientIp.size());
+    auto xForwardedFor = request.header("X-Forwarded-For");
+    if(xForwardedFor.size()) {
+        clientIp = xForwardedFor;
+    }
+    //printf("client ip: '%s', size: %ld\n", clientIp.data(), clientIp.size());
     std::string localhost_ipfv6 = "::";
     localhost_ipfv6.resize(INET6_ADDRSTRLEN);
     if(clientIp == localhost_ipfv6) return;
@@ -28,7 +32,7 @@ void checkIpAuthorized(http_request& request)
         countTrials++;
         // compare client ip with allowed ips
         for(int i = 0; i < cs->getAllowedIpsCount(); i++) {
-            printf("compare %s == %s = %d\n", clientIp.data(), cs->getAllowedIp(i).data(), clientIp == cs->getAllowedIp(i));
+            //printf("compare %s == %s = %d\n", clientIp.data(), cs->getAllowedIp(i).data(), clientIp == cs->getAllowedIp(i));
             if(clientIp == cs->getAllowedIp(i)) {
                 // found match, return to request
                 return;
@@ -46,9 +50,14 @@ void checkIpAuthorized(http_request& request)
         }
         // we don't wait any longer for update
         if(updateTriesLeft <= 0 || status == CacheServer::UpdateStatus::ERROR) {
+            LOG_ERROR("Waited more than 100ms for updated allowed ips, return with unauthorized.");
             throw http_error::unauthorized("{\"state\":\"error\"}");
         }
     }    
+    std::string message = "request from: ";
+    message += clientIp;
+    message += " unauthorized";
+    LOG_INFORMATION(message);
     throw http_error::unauthorized("{\"state\":\"error\"}");
 }
 
@@ -108,7 +117,7 @@ int main()
         checkIpAuthorized(request);
         auto params = request.url_parameters(s::email = std::string(), s::page = int(), s::count = int());
         response.set_header("content-type", "application/json");
-        response.write(cs->listPerEmailApi(params.email, params.page, params.count));        
+        response.write(cs->listPerEmailApi(params.email, params.page, params.count));                
     };
     api.get("/listPerEmailApi/{{email}}/{{page}}/{{count}}/{{orderDirection}}")
         = [&](http_request& request, http_response& response) {

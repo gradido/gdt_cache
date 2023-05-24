@@ -84,9 +84,9 @@ protected:
 
     //! email GdtEntryList used shared ptr because it could be pointed multiple times on by different emails
     std::unordered_map<std::string, std::shared_ptr<model::GdtEntryList>> mGdtEntriesByEmails; 
-    mutable std::recursive_mutex    mGdtEntriesAccessMutex;
-    mutable std::mutex              mGdtEntriesUpdateMutex;
-    std::time_t                     mLastUpdateGdtEntries;
+    mutable std::recursive_timed_mutex    mGdtEntriesAccessMutex;
+    mutable std::mutex                    mGdtEntriesUpdateMutex;
+    std::time_t                           mLastUpdateGdtEntries;
 
     //! ip from allowed hosts from config
     std::vector<std::string>        mAllowedIps;

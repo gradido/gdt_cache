@@ -165,7 +165,10 @@ std::string CacheServer::listPerEmailApi(
 {
     Profiler timeUsed;
     try {
-        std::unique_lock _lock(mGdtEntriesAccessMutex);
+        std::unique_lock _lock(mGdtEntriesAccessMutex, 10ms);
+        if(!_lock) {
+            throw http_error(504, "timeout mutex 10ms");
+        }
         auto it = mGdtEntriesByEmails.find(email);
         if(it == mGdtEntriesByEmails.end()) {            
             if(std::regex_match(email, g_EmailValidPattern)) {
@@ -210,7 +213,10 @@ std::string CacheServer::sumPerEmailApi(const std::string &email)
 {
     Profiler timeUsed;
     try {
-        std::lock_guard _lock(mGdtEntriesAccessMutex);
+        std::unique_lock _lock(mGdtEntriesAccessMutex, 10ms);
+        if(!_lock) {
+            throw http_error(504, "timeout mutex 10ms");
+        }
         auto it = mGdtEntriesByEmails.find(email);
         if(it == mGdtEntriesByEmails.end()) {
             if(std::regex_match(email, g_EmailValidPattern)) {
