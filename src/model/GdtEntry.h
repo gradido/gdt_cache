@@ -19,8 +19,8 @@ namespace model {
             DIGISTORE = 5,
             CVS2 = 6,
             GLOBAL_MODIFICATOR = 7,
-            CVS_STAFF_WAGE = 8,
-            STAFF_WAGE_GLOBAL_MODIFICATOR = 9,
+            CVS_STAFF_WAGE = 8, // not known by gradido
+            STAFF_WAGE_GLOBAL_MODIFICATOR = 9, // not known by gradido, shouldn't be also in db
             MAX
         };
 
@@ -50,7 +50,7 @@ namespace model {
         inline const std::string& getComment() const { return mComment;}
         inline const std::string& getCouponCode() const { return mCouponCode;}
         inline GdtEntryType getGdtEntryType() const {return mGdtEntryType;}
-        inline int getGdtEntryTypeId() const {return static_cast<int>(mGdtEntryType);}
+        int getGdtEntryTypeId() const;
         inline float getFactor() const {return mFactor;}
         inline long long getAmount2() const {return mAmount2;}
         inline double getAmount2Decimal() const {return static_cast<double>(mAmount2) / 100.0;}

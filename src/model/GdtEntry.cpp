@@ -112,6 +112,14 @@ namespace model {
 		}
 		return 0;
 	}
+	int GdtEntry::getGdtEntryTypeId() const
+	{
+		// gradido doesn't know this enum type so we need to give it another
+		if(mGdtEntryType == GdtEntryType::CVS_STAFF_WAGE) {
+			return 2;
+		}
+		return static_cast<int>(mGdtEntryType);
+	}
 
 	std::string GdtEntry::getFullComment(Tuple tuple)
 	{
