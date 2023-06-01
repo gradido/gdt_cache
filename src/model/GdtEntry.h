@@ -26,10 +26,14 @@ namespace model {
 
         static const char* getGdtEntryTypeString(GdtEntryType type);
 
-        typedef std::tuple<int, long long, std::time_t, std::string, std::string, std::string, std::string, std::string, int, double, long long, double> Tuple;
+        typedef std::tuple<int, long long, long long, std::string, std::string, std::string, std::string, std::string, int, double, long long, double> Tuple;
 
         GdtEntry(rapidjson::Value& gdtEntry);
         GdtEntry(Tuple tuple);
+        GdtEntry(int id, long long amount, long long date, 
+                const std::string& email, const std::string& comment, 
+                const std::string& source, const std::string& project, const std::string& coupon_code,
+                int gdt_entry_type_id, double factor, long long amount2, double factor2, double gdt);
         ~GdtEntry();
 
         const char* getTypename() const { return "GdtEntry"; }
@@ -59,12 +63,15 @@ namespace model {
 
         inline long long calculateGdt() const {
             return 
-                static_cast<double>(mAmount) * static_cast<double>(mFactor) * static_cast<double>(mFactor2)
+                static_cast<double>(mAmount) * mFactor * mFactor2
                 + static_cast<double>(mAmount2);
         }                
         
     protected:
-        std::string getFullComment(Tuple tuple);
+        inline std::string getFullComment(Tuple tuple) const {
+            return getFullComment(std::get<4>(tuple),std::get<5>(tuple), std::get<6>(tuple));
+        }
+        std::string getFullComment(const std::string& comment, const std::string& source, const std::string& project) const;
 
         int					mId;
         long long			mAmount; // normal euro sum
@@ -76,7 +83,7 @@ namespace model {
         GdtEntryType		mGdtEntryType;
         double				mFactor;
         long long           mAmount2;
-        double               mFactor2;
+        double              mFactor2;
         double				mGDT; // resulting gdt
 
     };

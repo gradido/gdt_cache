@@ -60,7 +60,7 @@ namespace model {
 		mFactor = gdtEntry["factor"].GetDouble();
 		mAmount2 = static_cast<long long>(round(gdtEntry["amount2"].GetDouble() * 100.0));
 		mFactor2 = gdtEntry["factor2"].GetDouble();
-		mGDT = gdtEntry["gdt"].GetFloat();			
+		mGDT = gdtEntry["gdt"].GetDouble();			
 	}
 
 	GdtEntry::GdtEntry(Tuple tuple)
@@ -75,6 +75,18 @@ namespace model {
 		//2022-09-14T13:09:24+00:00
 		ss << std::put_time(&tm, "%Y-%m-%dT%H:%M:%S+00:00");
 		mDateString = ss.str();
+	}
+
+	GdtEntry::GdtEntry(int id, long long amount, long long date, 
+                const std::string& email, const std::string& comment, 
+                const std::string& source, const std::string& project, const std::string& coupon_code,
+                int gdt_entry_type_id, double factor, long long amount2, double factor2, double gdt)
+	: mId(id), mAmount(amount), mDate(date), mEmail(email),
+	   mComment(getFullComment(comment, source, project)), mCouponCode(coupon_code), 
+	   mGdtEntryType((GdtEntryType)gdt_entry_type_id), mFactor(factor), mAmount2(amount2), 
+	   mFactor2(factor2), mGDT(gdt)
+	{
+
 	}
 
 	GdtEntry::~GdtEntry()
@@ -121,10 +133,8 @@ namespace model {
 		return static_cast<int>(mGdtEntryType);
 	}
 
-	std::string GdtEntry::getFullComment(Tuple tuple)
+	std::string GdtEntry::getFullComment(const std::string& comment, const std::string& source, const std::string& project) const
 	{
-		auto comment = get<4>(tuple), source = get<5>(tuple), project = get<6>(tuple);
-
 		// &#8210; = langer Gedankenstrich
 		std::string fullComment = comment;
         if(source.size()) {
