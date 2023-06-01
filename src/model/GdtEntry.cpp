@@ -84,7 +84,7 @@ namespace model {
 	: mId(id), mAmount(amount), mDate(date), mEmail(email),
 	   mComment(getFullComment(comment, source, project)), mCouponCode(coupon_code), 
 	   mGdtEntryType((GdtEntryType)gdt_entry_type_id), mFactor(factor), mAmount2(amount2), 
-	   mFactor2(factor2), mGDT(gdt)
+	   mFactor2(factor2), mGDT(gdt / 100.0)
 	{
 		std::tm tm = *std::localtime(&mDate);
 		std::stringstream ss;
