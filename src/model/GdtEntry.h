@@ -26,7 +26,7 @@ namespace model {
 
         static const char* getGdtEntryTypeString(GdtEntryType type);
 
-        typedef std::tuple<int, long long, std::time_t, std::string, std::string, std::string, std::string, std::string, int, float, long long, float> Tuple;
+        typedef std::tuple<int, long long, std::time_t, std::string, std::string, std::string, std::string, std::string, int, double, long long, double> Tuple;
 
         GdtEntry(rapidjson::Value& gdtEntry);
         GdtEntry(Tuple tuple);
@@ -51,13 +51,17 @@ namespace model {
         inline const std::string& getCouponCode() const { return mCouponCode;}
         inline GdtEntryType getGdtEntryType() const {return mGdtEntryType;}
         int getGdtEntryTypeId() const;
-        inline float getFactor() const {return mFactor;}
+        inline double getFactor() const {return mFactor;}
         inline long long getAmount2() const {return mAmount2;}
         inline double getAmount2Decimal() const {return static_cast<double>(mAmount2) / 100.0;}
-        inline float getFactor2() const {return mFactor2;}
+        inline double getFactor2() const {return mFactor2;}
         inline double getGdt() const {return mGDT;}
 
-        inline long long calculateGdt() const {return mAmount * mFactor * mFactor2 + mAmount2;}                
+        inline long long calculateGdt() const {
+            return 
+                static_cast<double>(mAmount) * static_cast<double>(mFactor) * static_cast<double>(mFactor2)
+                + static_cast<double>(mAmount2);
+        }                
         
     protected:
         std::string getFullComment(Tuple tuple);
@@ -70,9 +74,9 @@ namespace model {
         std::string		    mComment;
         std::string         mCouponCode;
         GdtEntryType		mGdtEntryType;
-        float				mFactor;
+        double				mFactor;
         long long           mAmount2;
-        float               mFactor2;
+        double               mFactor2;
         double				mGDT; // resulting gdt
 
     };

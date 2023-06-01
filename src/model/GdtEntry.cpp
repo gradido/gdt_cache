@@ -57,9 +57,9 @@ namespace model {
 		}
 		mGdtEntryType = static_cast<GdtEntryType>(gdtEntryTypeId);
 
-		mFactor = gdtEntry["factor"].GetFloat();
+		mFactor = gdtEntry["factor"].GetDouble();
 		mAmount2 = static_cast<long long>(round(gdtEntry["amount2"].GetDouble() * 100.0));
-		mFactor2 = gdtEntry["factor2"].GetFloat();
+		mFactor2 = gdtEntry["factor2"].GetDouble();
 		mGDT = gdtEntry["gdt"].GetFloat();			
 	}
 
@@ -69,7 +69,7 @@ namespace model {
 	   mGdtEntryType((GdtEntryType)get<8>(tuple)), mFactor(get<9>(tuple)), mAmount2(get<10>(tuple)), 
 	   mFactor2(get<11>(tuple)), mGDT(0.0)
 	{
-		mGDT = (mAmount * mFactor * mFactor2 + mAmount2) / 100.0;
+		mGDT = calculateGdt() / 100.0;
     	std::tm tm = *std::localtime(&mDate);
 		std::stringstream ss;
 		//2022-09-14T13:09:24+00:00

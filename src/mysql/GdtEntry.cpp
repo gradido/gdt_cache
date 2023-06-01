@@ -41,7 +41,7 @@ namespace mysql {
                 }
             }
             auto rows = connection(GDT_ENTRY_SELECT_STRING + "order by date ASC");
-            while (auto row = rows.read_optional<int, long long, int, std::string, std::string, std::string, std::string, std::string, int, float, int, float>())
+            while (auto row = rows.read_optional<int, long long, int, std::string, std::string, std::string, std::string, std::string, int, double, int, double>())
             {
                 model::GdtEntry entry(row.value());
                 // skip gdt entries with empty emails
