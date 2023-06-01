@@ -30,7 +30,7 @@ namespace model {
 
         GdtEntry(rapidjson::Value& gdtEntry);
         GdtEntry(Tuple tuple);
-        GdtEntry(int id, long long amount, long long date, 
+        GdtEntry(int id, long long amount, std::time_t date, 
                 const std::string& email, const std::string& comment, 
                 const std::string& source, const std::string& project, const std::string& coupon_code,
                 int gdt_entry_type_id, double factor, long long amount2, double factor2, double gdt);

@@ -20,7 +20,7 @@ namespace mysql {
             
             auto rows = prepared(customer->getEmailsString());
             rows.map([gdtEntries](
-                int id, long long amount, long long date, 
+                int id, long long amount, int date, 
                 std::string email, std::string comment, std::string source, std::string project, std::string coupon_code,
                 int gdt_entry_type_id, double factor, long long amount2, double factor2, double gdt) {
                     gdtEntries->addGdtEntry(model::GdtEntry(
@@ -52,7 +52,7 @@ namespace mysql {
             }
             auto rows = connection(GDT_ENTRY_SELECT_STRING + "order by date ASC");
             rows.map([&](
-                int id, long long amount, long long date, 
+                int id, long long amount, int date, 
                 std::string email, std::string comment, std::string source, std::string project, std::string coupon_code,
                 int gdt_entry_type_id, double factor, long long amount2, double factor2, double gdt) {
 

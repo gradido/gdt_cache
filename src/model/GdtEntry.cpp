@@ -77,7 +77,7 @@ namespace model {
 		mDateString = ss.str();
 	}
 
-	GdtEntry::GdtEntry(int id, long long amount, long long date, 
+	GdtEntry::GdtEntry(int id, long long amount, std::time_t date, 
                 const std::string& email, const std::string& comment, 
                 const std::string& source, const std::string& project, const std::string& coupon_code,
                 int gdt_entry_type_id, double factor, long long amount2, double factor2, double gdt)
@@ -86,7 +86,11 @@ namespace model {
 	   mGdtEntryType((GdtEntryType)gdt_entry_type_id), mFactor(factor), mAmount2(amount2), 
 	   mFactor2(factor2), mGDT(gdt)
 	{
-
+		std::tm tm = *std::localtime(&mDate);
+		std::stringstream ss;
+		//2022-09-14T13:09:24+00:00
+		ss << std::put_time(&tm, "%Y-%m-%dT%H:%M:%S+00:00");
+		mDateString = ss.str();
 	}
 
 	GdtEntry::~GdtEntry()
