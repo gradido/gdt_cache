@@ -25,10 +25,10 @@ namespace logging {
         static std::mutex printMutex;
         std::lock_guard _lock(printMutex);
 
-        if(entry.message.size() > 100) {
+        if(entry.message.size() > 200) {
             auto fileName = writeToFile(entry.message, entry.function.data());
             getOutputStreamForType(entry.type) << typeToString(entry.type) 
-                << " message bigger than 100 written to file: " << fileName << std::endl;
+                << " message bigger than 200 written to file: " << fileName << std::endl;
         } else {
             getOutputStreamForType(entry.type) 
                 << entry.completeFunction << ": " << typeToString(entry.type) 
