@@ -22,6 +22,8 @@
 #include <sstream>
 #include <chrono>
 #include <regex>
+#include <boost/lexical_cast.hpp>
+#include <typeinfo>
 
 using namespace li;
 using namespace rapidjson;
@@ -259,6 +261,15 @@ noexcept
             }   
             loadFromDb(connection);
             return UpdateStatus::OK;
+        } catch(const boost::bad_lexical_cast& e) {
+            std::string message = "boost bad lexical cast with source type: ";
+            auto& sourceType = typeid(e.source_type());
+            auto& targetType = typeid(e.target_type());
+            message += sourceType.name();
+            message += ", and with target type: ";
+            message += targetType.name();
+            LOG_ERROR(message);
+
         } catch(std::runtime_error& ex) {
             std::string message = "runtime error: ";
             message += ex.what();
@@ -285,9 +296,12 @@ CacheServer::UpdateStatus CacheServer::reloadGdtEntry(mysql_connection<mysql_fun
         if(it != mGdtEntriesByEmails.end() && !it->second->canUpdate()) {
             return UpdateStatus::SKIPPED;
         }
-        
+        bool customerExist = true;
         auto customer = mysql::Customer::getByEmail(email, connection);
-        if(!customer) customer = std::make_shared<model::Customer>(email);
+        if(!customer) {
+            customer = std::make_shared<model::Customer>(email);
+            customerExist = false;
+        } 
         auto gdtEntriesList = mysql::GdtEntry::getByCustomer(customer, connection);
         
         for(auto email: customer->getEmails()) {
@@ -299,6 +313,11 @@ CacheServer::UpdateStatus CacheServer::reloadGdtEntry(mysql_connection<mysql_fun
             }
         }
         if(gdtEntriesList->getTotalCount() > 0) {
+            if(!customerExist) {
+                std::string message = "contact ";
+                message = email.substr(0, 5) + "... in contacts not found";
+                LOG_INFORMATION(message);
+            }
             printf("[UpdateGdtEntryList] %s timeUsed for loading %ld contacts, %d gdt entries\n",
                 timeUsed.string().data(), customer->getEmails().size(), gdtEntriesList->getTotalCount()
             );

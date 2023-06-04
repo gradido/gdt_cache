@@ -14,6 +14,7 @@ namespace mysql {
         );
         
         //! load a single customer from db
+        //! return nullptr if customer couldn't be found
         model::CustomerPtr getByEmail(const std::string& email, 
             li::mysql_connection<li::mysql_functions_blocking> connection
         );       

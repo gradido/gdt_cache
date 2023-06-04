@@ -79,10 +79,11 @@ namespace mysql {
             selectMainContact += " where LOWER(TRIM(email)) LIKE LOWER(TRIM(?)) order by id ASC";
             connection.prepare(selectMainContact)(email).map(mapFunction);        
             if(!customer) {
-                std::string message = "contact ";
-                message = email.substr(0, 3) + "... in db not found";
+                return nullptr;
+                /*std::string message = "contact ";
+                message = email.substr(0, 5) + "... in db not found";
                 LOG_INFORMATION(message);
-                return std::make_shared<model::Customer>(email);
+                return std::make_shared<model::Customer>(email);*/
             }
 
             std::string selectAdditionalContacts = CONTACTS_SELECT_STRING;
