@@ -394,14 +394,8 @@ void CacheServer::loadFromDb(li::mysql_connection<li::mysql_functions_blocking> 
         customers = mysql::Customer::getAll(connection);
     }
     catch(const boost::bad_lexical_cast& e) {
-        std::string message = "boost bad lexical cast by calling mysql::Customer::getAll with source type: ";
-        auto& sourceType = typeid(e.source_type());
-        auto& targetType = typeid(e.target_type());
-        message += sourceType.name();
-        message += ", and with target type: ";
-        message += targetType.name();
-        LOG_ERROR(message);
-        return;
+        LOG_ERROR("boost bad lexical cast by calling mysql::Customer::getAll");
+        throw;
     }
 
     // check that our email regex pattern is matching all emails from db
@@ -423,14 +417,8 @@ void CacheServer::loadFromDb(li::mysql_connection<li::mysql_functions_blocking> 
     try {
         gdtEntriesPerEmail = mysql::GdtEntry::getAll(customers, connection, emailsNotInCustomer);
     } catch(const boost::bad_lexical_cast& e) {
-        std::string message = "boost bad lexical cast by calling mysql::GdtEntry::getAll with source type: ";
-        auto& sourceType = typeid(e.source_type());
-        auto& targetType = typeid(e.target_type());
-        message += sourceType.name();
-        message += ", and with target type: ";
-        message += targetType.name();
-        LOG_ERROR(message);
-        return;
+        LOG_ERROR("boost bad lexical cast by calling mysql::GdtEntry::getAll");
+        throw;
     }
     printf("[%s] time used for loading all gdt entries from db into memory: %s\n", __FUNCTION__, timeUsed.string().data());
     timeUsed.reset();

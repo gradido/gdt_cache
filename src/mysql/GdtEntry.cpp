@@ -4,7 +4,7 @@
 namespace mysql {
     namespace GdtEntry {
 
-        const std::string GDT_ENTRY_SELECT_STRING("select id, amount, UNIX_TIMESTAMP(date), LOWER(TRIM(email)), IFNULL(comment, ''), \
+        const std::string GDT_ENTRY_SELECT_STRING("select id, amount, IFNULL(UNIX_TIMESTAMP(date), 0), LOWER(TRIM(email)), IFNULL(comment, ''), \
                 IFNULL(source, ''), IFNULL(project, ''), IFNULL(coupon_code, ''), \
                 gdt_entry_type_id, factor, amount2, factor2, amount * factor * factor2 + amount2 as gdt from gdt_entries "
         );
@@ -64,7 +64,14 @@ namespace mysql {
                 // skip gdt entries with empty emails
                 if (entry.getEmail().size() == 0)
                     return;
-
+                if(!date) {
+                    std::string message = "gdt entry with id: ";
+                    message += std::to_string(id);
+                    message += " and type: ";
+                    message += model::GdtEntry::getGdtEntryTypeString(static_cast<model::GdtEntry::GdtEntryType>(gdt_entry_type_id));
+                    message += " has an empty date!";
+                    LOG_ERROR(message);
+                }
                 auto it = gdtEntries.find(entry.getEmail());
                 // email isn't already a contact
                 if (it == gdtEntries.end())
