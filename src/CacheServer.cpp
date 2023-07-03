@@ -234,7 +234,7 @@ std::string CacheServer::sumPerEmailApi(const std::string &email)
                 << view::stringWithoutTrailingZeros(it->second->getGdtSum())
                 << ",\"count\":"
                 << it->second->getTotalCount()
-                << ",\"time\":" << view::stringWithoutTrailingZeros(timeUsed.seconds()) << "}";
+                << ",\"time\":" << timeUsed.seconds() << "}";
             return out.str();
         }
     } catch(std::system_error& ex) {

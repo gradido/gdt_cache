@@ -20,7 +20,7 @@ namespace view {
             out << "],"
                 << "\"gdtSum\":" << stringWithoutTrailingZeros(data.getGdtSum()) << ","
                 << "\"state\":\"success\","
-                << "\"timeUsed\":" << stringWithoutTrailingZeros(timeUsed.seconds()) << ","
+                << "\"timeUsed\":" << timeUsed.seconds()
                 << "}"
             ;
 
@@ -93,7 +93,7 @@ namespace view {
 
             out << "],\"gdtSum\":"
                 << stringWithoutTrailingZeros(data.getGdtSum()) << ","
-                << "\"timeUsed\":" << stringWithoutTrailingZeros(timeUsed.seconds())
+                << "\"timeUsed\":" << timeUsed.seconds()
                 << "}"
                 ;
 

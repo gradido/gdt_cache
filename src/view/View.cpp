@@ -28,12 +28,12 @@ namespace view {
 
 	void configNumberFormat(std::ios& stream)
 	{
-		// maximal 2 decimal places
-		stream.precision(2);
 		// without scientific notation
 		stream.setf(std::ios_base::fixed, std::ios_base::floatfield);
 		// without trailing zeros
 		stream.unsetf(std::ios_base::showpoint);		
+		// maximal 2 decimal places
+		stream.precision(2);
 	}
 
 	std::string stringWithoutTrailingZeros(double number)
@@ -52,9 +52,9 @@ namespace view {
 			buffer.seekp(std::ios::beg); 
 		} else {
 			firstTime = false;
-			configNumberFormat(buffer);
 		}
-		buffer << number;
+		configNumberFormat(buffer);
+		buffer << number << '\0';
 		std::string result = buffer.str().c_str();  
 
 		// code from chatGPT 
