@@ -30,10 +30,10 @@ namespace view {
 	{
 		// maximal 2 decimal places
 		stream.precision(2);
-		// without trailing zeros
-		stream.unsetf(std::ios_base::showpoint);
 		// without scientific notation
-		stream.unsetf(std::ios_base::floatfield);
+		stream.setf(std::ios_base::fixed, std::ios_base::floatfield);
+		// without trailing zeros
+		stream.unsetf(std::ios_base::showpoint);		
 	}
 
 	std::string stringWithoutTrailingZeros(double number)
