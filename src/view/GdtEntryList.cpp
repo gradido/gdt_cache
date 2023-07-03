@@ -94,9 +94,13 @@ namespace view {
                 }
             }
 
-            out << "],"
-                << "\"gdtSum\":" << std::fixed << data.getGdtSum() << ","
-                << "\"timeUsed\":" << timeUsed.seconds()
+            out << "],\"gdtSum\":";
+            if(data.getGdtSum() == 0.0) {
+                out << "0,";
+            } else { 
+                out << std::fixed << data.getGdtSum() << ",";
+            }
+            out << "\"timeUsed\":" << timeUsed.seconds()
                 << "}";
 
             return out.str();
