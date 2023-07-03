@@ -8,7 +8,6 @@ namespace view {
         std::string toJsonString(const model::GdtEntryList& data, Profiler timeUsed)
         {
             std::stringstream out;
-            configNumberFormat(out);
             out << "{"
                 << "\"count\":" << data.getTotalCount() << ","
                 << "\"gdtEntries\":[";
@@ -19,9 +18,9 @@ namespace view {
                 firstEntry = false;
             }				
             out << "],"
-                << "\"gdtSum\":" << data.getGdtSum() << ","
+                << "\"gdtSum\":" << stringWithoutTrailingZeros(data.getGdtSum()) << ","
                 << "\"state\":\"success\","
-                << "\"timeUsed\":" << timeUsed.seconds() << ","
+                << "\"timeUsed\":" << stringWithoutTrailingZeros(timeUsed.seconds()) << ","
                 << "}"
             ;
 
@@ -37,7 +36,6 @@ namespace view {
 		)
         {
             std::stringstream out;
-            configNumberFormat(out);
             out << "{"
                 << "\"state\":\"success\","
                 << "\"count\":" << data.getTotalCount() << ","
@@ -94,9 +92,10 @@ namespace view {
             }
 
             out << "],\"gdtSum\":"
-                << data.getGdtSum() << ","
-                << "\"timeUsed\":" << timeUsed.seconds()
-                << "}";
+                << stringWithoutTrailingZeros(data.getGdtSum()) << ","
+                << "\"timeUsed\":" << stringWithoutTrailingZeros(timeUsed.seconds())
+                << "}"
+                ;
 
             return out.str();
         }

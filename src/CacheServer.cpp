@@ -230,12 +230,11 @@ std::string CacheServer::sumPerEmailApi(const std::string &email)
                 mUpdateCacheWorker.pushTask(std::make_shared<task::UpdateGdtEntryList>(email));
             }
             std::ostringstream out;
-		    view::configNumberFormat(out);
             out << "{\"state\":\"success\",\"sum\":" 
-                << it->second->getGdtSum()
+                << view::stringWithoutTrailingZeros(it->second->getGdtSum())
                 << ",\"count\":"
                 << it->second->getTotalCount()
-                << ",\"time\":" << timeUsed.seconds() << "}";
+                << ",\"time\":" << view::stringWithoutTrailingZeros(timeUsed.seconds()) << "}";
             return out.str();
         }
     } catch(std::system_error& ex) {

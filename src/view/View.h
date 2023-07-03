@@ -17,6 +17,9 @@ namespace view {
 
     void configNumberFormat(std::ios& stream);
 
+    std::string stringWithoutTrailingZeros(double number);
+    std::string stringWithoutTrailingZeros(float number);
+
     template<class T> std::string toJsonString(const T& data);
     template<> std::string toJsonString<model::GdtEntry>(const model::GdtEntry& data);
     template<> std::string toJsonString<model::GdtEntryList>(const model::GdtEntryList& data);
