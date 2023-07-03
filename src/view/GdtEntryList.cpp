@@ -20,7 +20,7 @@ namespace view {
                 firstEntry = false;
             }				
             out << "],"
-                << "\"gdtSum\":" << std::fixed << data.getGdtSum() << ","
+                << "\"gdtSum\":" << data.getGdtSum() << ","
                 << "\"state\":\"success\","
                 << "\"timeUsed\":" << timeUsed.seconds() << ","
                 << "}"
@@ -94,14 +94,11 @@ namespace view {
                 }
             }
 
-            out << "],\"gdtSum\":";
-            if(data.getGdtSum() == 0.0) {
-                out << "0,";
-            } else { 
-                out << std::fixed << data.getGdtSum() << ",";
-            }
-            out << "\"timeUsed\":" << timeUsed.seconds()
-                << "}";
+            out << "],\"gdtSum\":"
+                << data.getGdtSum() << ","
+                << "\"timeUsed\":" << timeUsed.seconds()
+                << "}"
+            ;
 
             return out.str();
         }

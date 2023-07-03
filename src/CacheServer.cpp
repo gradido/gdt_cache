@@ -232,7 +232,7 @@ std::string CacheServer::sumPerEmailApi(const std::string &email)
             std::ostringstream out;
             out.precision(2);
             out << "{\"state\":\"success\",\"sum\":" 
-                << std::fixed << it->second->getGdtSum()
+                <<  it->second->getGdtSum()
                 << ",\"count\":"
                 << it->second->getTotalCount()
                 << ",\"time\":" << timeUsed.seconds() << "}";

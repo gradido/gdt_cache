@@ -33,16 +33,16 @@ namespace view {
 		out 
 		   << "{" 
 		   << "\"id\":" << data.getId() << ","
-		   << "\"amount\":" << std::fixed << data.getAmountDecimal() << ","
+		   << "\"amount\":" << data.getAmountDecimal() << ","
 		   << "\"date\":\"" << data.getDateString() << "\","
 		   << "\"email\":\"" << data.getEmail() << "\","
 		   << "\"comment\":\"" << data.getComment() << "\","
 		   << "\"coupon_code\":\"" << data.getCouponCode() << "\","
 		   << "\"gdt_entry_type_id\":" << data.getGdtEntryTypeId() << ","
-		   << "\"factor\":" << std::fixed << data.getFactor() << ","
-		   << "\"amount2\":" << std::fixed << data.getAmount2Decimal() << ","
-		   << "\"factor2\":" << std::fixed << data.getFactor2() << ","
-		   << "\"gdt\":" << std::fixed << data.getGdt() 
+		   << "\"factor\":" << data.getFactor() << ","
+		   << "\"amount2\":" << data.getAmount2Decimal() << ","
+		   << "\"factor2\":" << data.getFactor2() << ","
+		   << "\"gdt\":" << data.getGdt() 
 		   << "}"
 		;
 		return out.str();
@@ -62,7 +62,7 @@ namespace view {
 			firstEntry = false;
 		}				
 		out << "],"
-			<< "\"gdtSum\":" << std::fixed << data.getGdtSum() << ","
+			<< "\"gdtSum\":" << data.getGdtSum() << ","
 			<< "\"state\":\"success\","
 			<< "}"
 		;
