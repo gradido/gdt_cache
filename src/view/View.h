@@ -3,6 +3,7 @@
 
 #include "../model/GdtEntry.h"
 #include "../model/GdtEntryList.h"
+#include <ios>
 
 namespace view {
     enum class OrderDirections 
@@ -12,7 +13,9 @@ namespace view {
     };
 
     OrderDirections orderDirectionFromString(const std::string& orderDirection);
-    const char* orderDirectionsToString(OrderDirections dir);
+    const char* orderDirectionsToString(OrderDirections dir);    
+
+    void configNumberFormat(std::ios& stream);
 
     template<class T> std::string toJsonString(const T& data);
     template<> std::string toJsonString<model::GdtEntry>(const model::GdtEntry& data);

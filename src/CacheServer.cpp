@@ -224,15 +224,15 @@ std::string CacheServer::sumPerEmailApi(const std::string &email)
             if(std::regex_match(email, g_EmailValidPattern)) {
                 mUpdateCacheWorker.pushTask(std::make_shared<task::UpdateGdtEntryList>(email));
             }
-            return "{\"state\":\"success\",\"sum\":0,\"count\":0,\"time\":"+std::to_string(timeUsed.seconds())+"}";
+            return "{\"state\":\"success\",\"sum\":0,\"count\":0,\"time\":"+std::to_string((static_cast<float>(timeUsed.seconds())))+"}";
         } else {
             if(it->second->canUpdate()) {
                 mUpdateCacheWorker.pushTask(std::make_shared<task::UpdateGdtEntryList>(email));
             }
             std::ostringstream out;
-            out.precision(2);
+		    view::configNumberFormat(out);
             out << "{\"state\":\"success\",\"sum\":" 
-                <<  it->second->getGdtSum()
+                << it->second->getGdtSum()
                 << ",\"count\":"
                 << it->second->getTotalCount()
                 << ",\"time\":" << timeUsed.seconds() << "}";

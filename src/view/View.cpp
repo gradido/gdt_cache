@@ -26,10 +26,20 @@ namespace view {
 		throw GradidoUnhandledEnum("view::orderDirectionsToString", "OrderDirections", static_cast<int>(dir));
 	}
 
+	void configNumberFormat(std::ios& stream)
+	{
+		// maximal 2 decimal places
+		stream.precision(2);
+		// without trailing zeros
+		stream.unsetf(std::ios_base::showpoint);
+		// without scientific notation
+		stream.unsetf(std::ios_base::floatfield);
+	}
+
 	template<> std::string toJsonString<model::GdtEntry>(const model::GdtEntry& data)
 	{
 		std::stringstream out;
-		out.precision(2);
+		configNumberFormat(out);
 		out 
 		   << "{" 
 		   << "\"id\":" << data.getId() << ","
@@ -50,7 +60,7 @@ namespace view {
     template<> std::string toJsonString<model::GdtEntryList>(const model::GdtEntryList& data)
 	{
 		std::stringstream out;
-		out.precision(2);
+		configNumberFormat(out);
 		out 
 			<< "{"
 			<< "\"count\":" << data.getTotalCount() << ","
