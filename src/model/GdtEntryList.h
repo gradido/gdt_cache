@@ -14,15 +14,11 @@ namespace model {
 	class GdtEntryList
 	{
 	public:
-		GdtEntryList(rapidjson::Value& gdtEntryList);
 		GdtEntryList();
 		~GdtEntryList();
 
-
 		inline void reset() {mGdtEntries.clear(); mTotalCount = 0; mTotalGDTSum = 0.0;};
-		//! \param emails point to set if you like to know which email addresses are present in gdt entries
-		int addGdtEntry(rapidjson::Value& gdtEntryList, std::set<std::string>* emails = nullptr);
-
+		
 		//! add gdt entry from db read, one after another
 		void addGdtEntry(const GdtEntry& gdtEntry);
 
@@ -50,7 +46,8 @@ namespace model {
 		std::time_t mLastUpdate;
 	};
 	typedef std::shared_ptr<model::GdtEntryList> GdtEntryListPtr;
-	typedef std::unordered_map<std::string, model::GdtEntryListPtr> EmailGdtEntriesListMap;
+	// indiced by customer_id
+	typedef std::unordered_map<int, model::GdtEntryListPtr> EmailGdtEntriesListMap;
 }
 
 #endif //__GRADIDO_DESKTOP_MODEL_GRAPHQL_GDT_ENTRY_LIST_H

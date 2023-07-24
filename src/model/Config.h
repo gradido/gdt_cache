@@ -13,7 +13,6 @@ namespace model
         Config(const char* configFilename);
         ~Config();
 
-        std::string gdtServerUrl;
         int port;
         //! minimal cache timeout in seconds
         int minCacheTimeout;
@@ -23,6 +22,9 @@ namespace model
         li::mysql_database* database;
         std::vector<std::string> allowedHosts;
         
+        // if ip white listening is enable or not
+        // true (default) if it is enabled
+        bool ipWhiteListing;        
     };
 }
 extern model::Config* g_Config;

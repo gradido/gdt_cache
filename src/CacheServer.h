@@ -7,7 +7,6 @@
 #include <mutex>
 #include <shared_mutex>
 #include "model/GdtEntryList.h"
-#include "model/Customer.h"
 #include "background_tasks/UpdateCacheWorker.h"
 #include "view/View.h"
 
@@ -73,17 +72,10 @@ protected:
     // reload contacts and gdt entries from db complete
     void loadFromDb(li::mysql_connection<li::mysql_functions_blocking> connection);
 
-    // api calls
-    rapidjson::Document _listPerEmailApi(
-        const std::string& email, 
-        int page = 1, 
-        int count = 25, 
-        view::OrderDirections order = view::OrderDirections::ASC
-    );
     bool updateAllowedIp(const std::string& url);
 
-    //! email GdtEntryList used shared ptr because it could be pointed multiple times on by different emails
-    std::unordered_map<std::string, std::shared_ptr<model::GdtEntryList>> mGdtEntriesByEmails; 
+    model::EmailGdtEntriesListMap mGdtEntriesByEmails; 
+    std::unordered_map<std::string, int> mEmailCustomerIds;
     mutable std::recursive_timed_mutex    mGdtEntriesAccessMutex;
     mutable std::mutex                    mGdtEntriesUpdateMutex;
     std::time_t                           mLastUpdateGdtEntries;

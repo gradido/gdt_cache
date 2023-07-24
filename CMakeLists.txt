@@ -46,7 +46,6 @@ include_directories(${MYSQL_INCLUDE_DIR})
 # Directory where lithium headers are located if not in the default include path.
 include_directories(
     third_party/lithium/single_headers
-    third_party/rapidjson/include
     third_party/mariadb-connector-c/include
     ${CMAKE_BINARY_DIR}/third_party/mariadb-connector-c/include    
 )

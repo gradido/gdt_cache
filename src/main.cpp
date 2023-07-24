@@ -1,10 +1,11 @@
 #include <lithium_http_server.hh>
+#include "utils/stringUtils.h"
 
 #include "CacheServer.h"
 #include "logging/Logging.h"
 #include "logging/ContainerSingleton.h"
 #include "model/Config.h"
-#include "main.h"
+#include "lithium_symbols.h"
 #include "utils/Profiler.h"
 #include "boost/lexical_cast/bad_lexical_cast.hpp"
 
@@ -17,6 +18,7 @@ using namespace std::chrono_literals;
 
 void checkIpAuthorized(http_request& request)
 {
+    if(!g_Config->ipWhiteListing) return;
     auto clientIp = request.ip_address();
     auto xForwardedFor = request.header("X-Forwarded-For");
     if(xForwardedFor.size()) {
@@ -64,8 +66,13 @@ void checkIpAuthorized(http_request& request)
 int main()
 {
     Profiler timeUsed;
-    // load config
-    g_Config = new model::Config("config.json");
+    try {
+        // load config
+        g_Config = new model::Config("config.json");
+    } catch(std::exception& e) {
+        LOG_ERROR(e.what());
+        return -4;
+    }
     
     // load data form gdt server
     auto cs = CacheServer::getInstance();
@@ -105,19 +112,19 @@ int main()
         checkIpAuthorized(request);
         auto params = request.url_parameters(s::email = std::string());
         response.set_header("content-type", "application/json");
-        response.write(cs->listPerEmailApi(params.email));        
+        response.write(cs->listPerEmailApi(trim(toLowercase(params.email))));        
     };
     api.get("/listPerEmailApi/{{email}}/{{page}}") = [&](http_request& request, http_response& response) {
         checkIpAuthorized(request);
         auto params = request.url_parameters(s::email = std::string(), s::page = int());
         response.set_header("content-type", "application/json");
-        response.write(cs->listPerEmailApi(params.email, params.page));        
+        response.write(cs->listPerEmailApi(trim(toLowercase(params.email)), params.page));        
     };
     api.get("/listPerEmailApi/{{email}}/{{page}}/{{count}}") = [&](http_request& request, http_response& response) {
         checkIpAuthorized(request);
         auto params = request.url_parameters(s::email = std::string(), s::page = int(), s::count = int());
         response.set_header("content-type", "application/json");
-        response.write(cs->listPerEmailApi(params.email, params.page, params.count));                
+        response.write(cs->listPerEmailApi(trim(toLowercase(params.email)), params.page, params.count));                
     };
     api.get("/listPerEmailApi/{{email}}/{{page}}/{{count}}/{{orderDirection}}")
         = [&](http_request& request, http_response& response) {
@@ -131,7 +138,7 @@ int main()
             response.set_header("content-type", "application/json");
             response.write(
                 cs->listPerEmailApi(
-                    params.email, 
+                    trim(toLowercase(params.email)), 
                     params.page, 
                     params.count, 
                     view::orderDirectionFromString(params.orderDirection)
@@ -150,7 +157,7 @@ int main()
         if(params.email == "") {
             response.write("{\"state\":\"error\",\"msg\":\"parameter error\"}");
         } else {
-            response.write(cs->sumPerEmailApi(params.email));
+            response.write(cs->sumPerEmailApi(trim(toLowercase(params.email))));
         }        
     };
     api.post("/sumPerEmailApi") = [&](http_request& request, http_response& response) {
@@ -160,7 +167,7 @@ int main()
         if(!params.email || params.email.value() == "") {
             response.write("{\"state\":\"error\",\"msg\":\"parameter error\"}");
         } else {
-            response.write(cs->sumPerEmailApi(params.email.value()));
+            response.write(cs->sumPerEmailApi(trim(toLowercase(params.email.value()))));
         }        
     };
     std::string info = "time for startup preparations: ";

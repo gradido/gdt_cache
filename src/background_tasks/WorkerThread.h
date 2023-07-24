@@ -9,7 +9,6 @@
 #include <chrono>
 #include <iostream>
 #include "../logging/Logging.h"
-#include "../GradidoBlockchainException.h"
 
 /*!
  * @author einhornimmond
@@ -129,10 +128,6 @@ void WorkerThread<T>::threadFunction()
                    _lockTask.lock();
                     mTasks.push(task);
                 }
-            } catch(GradidoBlockchainException& ex) {
-                std::string message = "gradido blockchain exception: ";
-                message += ex.getFullString();
-                LOG_ERROR(message);
             } catch(std::exception& ex) {
                 std::string message = "exception: ";
                 message += ex.what();
