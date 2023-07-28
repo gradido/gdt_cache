@@ -96,8 +96,8 @@ std::string CacheServer::listPerEmailApi(
             return resultJsonString;
         }
 
-    } catch(std::system_error& ex) {
-        std::string message = "system exception: ";
+    } catch(std::runtime_error& ex) {
+        std::string message = "runtime exception: ";
         message += ex.what();
         LOG_ERROR(message);
         throw http_error::internal_server_error("deadlock");
@@ -139,8 +139,8 @@ std::string CacheServer::sumPerEmailApi(const std::string &email)
                 << ",\"time\":" << timeUsed.seconds() << "}";
             return out.str();
         }
-    } catch(std::system_error& ex) {
-        std::string message = "system exception: ";
+    } catch(std::runtime_error& ex) {
+        std::string message = "runtime exception: ";
         message += ex.what();
         LOG_ERROR(message);
         throw http_error::internal_server_error("deadlock");
