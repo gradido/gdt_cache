@@ -65,4 +65,39 @@
     LI_SYMBOL(gdtSum)
 #endif
 
+#ifndef LI_SYMBOL_db
+#define LI_SYMBOL_db
+    LI_SYMBOL(db)
+#endif
+
+#ifndef LI_SYMBOL_username
+#define LI_SYMBOL_username
+    LI_SYMBOL(username)
+#endif
+
+#ifndef LI_SYMBOL_name
+#define LI_SYMBOL_name
+    LI_SYMBOL(name)
+#endif
+
+#ifndef LI_SYMBOL_minCacheTimeout
+#define LI_SYMBOL_minCacheTimeout
+    LI_SYMBOL(minCacheTimeout)
+#endif
+
+#ifndef LI_SYMBOL_maxCacheTimeout
+#define LI_SYMBOL_maxCacheTimeout
+    LI_SYMBOL(maxCacheTimeout)
+#endif
+
+#ifndef LI_SYMBOL_allowedIPs
+#define LI_SYMBOL_allowedIPs
+    LI_SYMBOL(allowedIPs)
+#endif
+
+#ifndef LI_SYMBOL_ipWhiteListening
+#define LI_SYMBOL_ipWhiteListening
+    LI_SYMBOL(ipWhiteListening)
+#endif
+
 #endif //__GDT_CACHE_SYMBOLS_H

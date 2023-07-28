@@ -1,7 +1,5 @@
 #include "View.h"
 #include "../logging/Logging.h"
-#include "../GradidoBlockchainException.h"
-#include "../main.h"
 
 #include <math.h>
 #include <sstream>
@@ -23,7 +21,9 @@ namespace view {
 			case OrderDirections::ASC: return "ASC";
 			case OrderDirections::DESC: return "DESC";
 		}
-		throw GradidoUnhandledEnum("view::orderDirectionsToString", "OrderDirections", static_cast<int>(dir));
+		std::string message = "[view::orderDirectionsToString] invalid OrderDirections with value: ";
+		message += std::to_string(static_cast<int>(dir));
+		throw std::runtime_error(message);
 	}
 
 	void configNumberFormat(std::ios& stream)

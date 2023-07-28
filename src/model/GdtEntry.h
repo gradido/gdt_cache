@@ -2,8 +2,7 @@
 #define __GRADIDO_DESKTOP_MODEL_GRAPHQL_GDT_ENTRY_H
 
 #include <ctime>
-#include <tuple>
-#include <rapidjson/document.h>
+#include <string>
 
 namespace model {
 	
@@ -26,13 +25,10 @@ namespace model {
 
         static const char* getGdtEntryTypeString(GdtEntryType type);
 
-        typedef std::tuple<int, long long, long long, std::string, std::string, std::string, std::string, std::string, int, double, long long, double> Tuple;
-
-        GdtEntry(rapidjson::Value& gdtEntry);
-        GdtEntry(Tuple tuple);
         GdtEntry(int id, long long amount, std::time_t date, 
                 const std::string& email, const std::string& comment, 
                 const std::string& source, const std::string& project, const std::string& coupon_code,
+                int customer_id,
                 int gdt_entry_type_id, double factor, long long amount2, double factor2, double gdt);
         ~GdtEntry();
 
@@ -53,6 +49,7 @@ namespace model {
         inline const std::string& getEmail() const { return mEmail;}
         inline const std::string& getComment() const { return mComment;}
         inline const std::string& getCouponCode() const { return mCouponCode;}
+        inline int getCustomerId() const { return mCustomerId; }
         inline GdtEntryType getGdtEntryType() const {return mGdtEntryType;}
         int getGdtEntryTypeId() const;
         inline double getFactor() const {return mFactor;}
@@ -68,9 +65,6 @@ namespace model {
         }                
         
     protected:
-        inline std::string getFullComment(Tuple tuple) const {
-            return getFullComment(std::get<4>(tuple),std::get<5>(tuple), std::get<6>(tuple));
-        }
         std::string getFullComment(const std::string& comment, const std::string& source, const std::string& project) const;
 
         int					mId;
@@ -80,6 +74,7 @@ namespace model {
         std::string         mEmail;
         std::string		    mComment;
         std::string         mCouponCode;
+        int                 mCustomerId;
         GdtEntryType		mGdtEntryType;
         double				mFactor;
         long long           mAmount2;

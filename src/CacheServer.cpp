@@ -1,6 +1,5 @@
-#include "main.h"
+#include "lithium_symbols.h"
 #include "CacheServer.h"
-#include "GradidoBlockchainException.h"
 #include "logging/Logging.h"
 #include "mysql/Customer.h"
 #include "mysql/GdtEntry.h"
@@ -14,10 +13,6 @@
 #include <lithium_metamap.hh>
 #include <lithium_json.hh>
 
-#include <rapidjson/document.h>
-#include <rapidjson/writer.h>
-#include <rapidjson/stringbuffer.h>
-
 #include <thread>
 #include <sstream>
 #include <chrono>
@@ -26,7 +21,6 @@
 #include <typeinfo>
 
 using namespace li;
-using namespace rapidjson;
 using namespace std::chrono_literals;
 
 CacheServer::CacheServer()
@@ -42,112 +36,6 @@ CacheServer *CacheServer::getInstance()
 {
     static CacheServer one;
     return &one;
-}
-
-bool CacheServer::initializeFromPhp()
-{
-    Profiler timeUsed;
-    // Get list of contacts
-    std::string requestUrl = "https://" + g_Config->gdtServerUrl;
-    requestUrl += "/contacts/apiGetCustomerWithGdtEntries";
-
-    Document bodyJson;
-    try
-    {
-        auto res = http_get(requestUrl);
-
-        printf("[%s] used time for contacts/apiGetCustomerWithGdtEntries request: %s\n", __FUNCTION__, timeUsed.string().data());
-        printf("size: %ld kByte\n", res.body.size() / 1024);
-
-        timeUsed.reset();
-
-        bodyJson.Parse(res.body.data());
-
-        printf("[%s] used time parsing to json: %s\n", __FUNCTION__, timeUsed.string().data());
-        timeUsed.reset();
-    }
-    catch (std::exception &ex)
-    {
-        std::string message = "call to contacts/apiGetCustomerWithGdtEntries throw exception: ";
-        message += ex.what();
-        LOG_ERROR(message);
-        requestUrl = "https://" + g_Config->gdtServerUrl + "/contacts/apiIndex";
-        auto res = http_get(requestUrl);
-
-        printf("[%s] used time for contacts/apiIndex request: %s\n", __FUNCTION__, timeUsed.string().data());
-        printf("size: %ld kByte\n", res.body.size() / 1024);
-
-        timeUsed.reset();
-
-        bodyJson.Parse(res.body.data());
-
-        printf("[%s] used time parsing to json: %s\n", __FUNCTION__, timeUsed.string().data());
-        timeUsed.reset();
-    }
-
-    if (!bodyJson.HasMember("emails"))
-    {
-        LOG_ERROR("missing emails member in apiGetCustomerWithGdtEntries result");
-        return false;
-    }
-    if (bodyJson.HasMember("missingEmails") && bodyJson["missingEmails"].GetArray().Size() > 0)
-    {
-        LOG_ERROR("missing emails, please check gdt server code");
-        for (auto &missingEmail : bodyJson["missingEmails"].GetArray())
-        {
-            fprintf(stderr, "%s", missingEmail.GetString());
-        }
-        fprintf(stderr, "\n");
-        return false;
-    }
-    auto contactsCount = bodyJson["emails"].GetArray().Size();
-    int currentContact = 1;
-    printf("[%s] contacts count: %d\n", __FUNCTION__, bodyJson["emails"].GetArray().Size());
-
-    Profiler breakTimer;
-    for (auto &contact : bodyJson["emails"].GetArray())
-    {
-        Profiler timePerEmail;
-        // printf("%s ", contact["email"].GetString());
-        std::string email = contact.GetString();
-        std::set<std::string> emails;
-        emails.insert(email);
-        std::shared_ptr<model::GdtEntryList> gdtEntries = std::make_shared<model::GdtEntryList>();
-        int page = 1;
-        do
-        {
-            Profiler timePerCall;
-            try {
-                auto json = _listPerEmailApi(email, page, 50, view::OrderDirections::ASC);
-                page++;
-                auto updatedCount = gdtEntries->addGdtEntry(json);
-                printf("[%s] time for %d added gdt entries: %s\n", __FUNCTION__, updatedCount, timePerCall.string().data());
-            }
-            catch (RapidjsonParseErrorException &ex)
-            {
-                LOG_ERROR(ex.getFullString());
-                return false;
-            }
-        } while (gdtEntries->getTotalCount() > gdtEntries->getGdtEntriesCount());
-        printf("[%s] used time: %s for email: %s %d/%d\n",
-               __FUNCTION__, timePerEmail.string().data(), email.data(), currentContact, contactsCount);
-
-        mGdtEntriesAccessMutex.lock();
-        for (auto email : emails) {
-            mGdtEntriesByEmails.insert({email, gdtEntries});
-        }
-        mGdtEntriesAccessMutex.unlock();
-
-        if (breakTimer.seconds() > 1.0) {
-            breakTimer.reset();
-            std::this_thread::sleep_for(100ms);
-        }
-        currentContact++;
-    }
-    printf("[%s] used time collecting gdt entries: %s\n", __FUNCTION__, timeUsed.string().data());
-
-    mUpdateCacheWorker.startThread();
-    return true;
 }
 
 void CacheServer::initializeFromDb()
@@ -171,18 +59,26 @@ std::string CacheServer::listPerEmailApi(
         if(!_lock) {
             throw http_error(504, "timeout mutex 10ms");
         }
-        auto it = mGdtEntriesByEmails.find(email);
-        if(it == mGdtEntriesByEmails.end()) {            
+        auto emailCustomerIdsIt = mEmailCustomerIds.find(email);
+        model::GdtEntryListPtr gdtEntryList;
+        if(emailCustomerIdsIt != mEmailCustomerIds.end()) {
+            auto it = mGdtEntriesByEmails.find(emailCustomerIdsIt->second);
+            if(it != mGdtEntriesByEmails.end()) {
+                gdtEntryList = it->second;
+            }
+        }
+        
+        if(!gdtEntryList) {      
             if(std::regex_match(email, g_EmailValidPattern)) {
                 mUpdateCacheWorker.pushTask(std::make_shared<task::UpdateGdtEntryList>(email));
             }
             return "{\"state\":\"success\",\"count\":0,\"gdtEntries\":[],\"gdtSum\":0,\"timeUsed\":"
                         +std::to_string(static_cast<float>(timeUsed.seconds()))+"}";
         } else {
-            if(it->second->canUpdate()) {
+            if(gdtEntryList->canUpdate()) {
                 mUpdateCacheWorker.pushTask(std::make_shared<task::UpdateGdtEntryList>(email));
             }
-            std::string resultJsonString = view::GdtEntryList::toJsonString(*it->second, timeUsed, page, count, order);
+            std::string resultJsonString = view::GdtEntryList::toJsonString(*gdtEntryList, timeUsed, page, count, order);
             _lock.unlock();
             
             // 50 * 1024 = hardcoded output buffer size from lithium
@@ -200,8 +96,8 @@ std::string CacheServer::listPerEmailApi(
             return resultJsonString;
         }
 
-    } catch(std::system_error& ex) {
-        std::string message = "system exception: ";
+    } catch(std::runtime_error& ex) {
+        std::string message = "runtime exception: ";
         message += ex.what();
         LOG_ERROR(message);
         throw http_error::internal_server_error("deadlock");
@@ -219,26 +115,32 @@ std::string CacheServer::sumPerEmailApi(const std::string &email)
         if(!_lock) {
             throw http_error(504, "timeout mutex 10ms");
         }
-        auto it = mGdtEntriesByEmails.find(email);
-        if(it == mGdtEntriesByEmails.end()) {
+        auto emailCustomerIdsIt = mEmailCustomerIds.find(email);
+        model::GdtEntryListPtr gdtEntryList;
+        if(emailCustomerIdsIt != mEmailCustomerIds.end()) {
+            auto it = mGdtEntriesByEmails.find(emailCustomerIdsIt->second);
+            if(it != mGdtEntriesByEmails.end()) {
+                gdtEntryList = it->second;
+            }
+        }
+        
+        if(!gdtEntryList) {
             if(std::regex_match(email, g_EmailValidPattern)) {
                 mUpdateCacheWorker.pushTask(std::make_shared<task::UpdateGdtEntryList>(email));
             }
-            return "{\"state\":\"success\",\"sum\":0,\"count\":0,\"time\":"+std::to_string((static_cast<float>(timeUsed.seconds())))+"}";
+            return "{\"state\":\"success\",\"sum\":0,\"time\":"+std::to_string((static_cast<float>(timeUsed.seconds())))+"}";
         } else {
-            if(it->second->canUpdate()) {
+            if(gdtEntryList->canUpdate()) {
                 mUpdateCacheWorker.pushTask(std::make_shared<task::UpdateGdtEntryList>(email));
             }
             std::ostringstream out;
             out << "{\"state\":\"success\",\"sum\":" 
-                << view::stringWithoutTrailingZeros(it->second->getGdtSum())
-                << ",\"count\":"
-                << it->second->getTotalCount()
+                << view::stringWithoutTrailingZeros(gdtEntryList->getGdtSum())
                 << ",\"time\":" << timeUsed.seconds() << "}";
             return out.str();
         }
-    } catch(std::system_error& ex) {
-        std::string message = "system exception: ";
+    } catch(std::runtime_error& ex) {
+        std::string message = "runtime exception: ";
         message += ex.what();
         LOG_ERROR(message);
         throw http_error::internal_server_error("deadlock");
@@ -291,36 +193,35 @@ CacheServer::UpdateStatus CacheServer::reloadGdtEntry(mysql_connection<mysql_fun
     try {
         Profiler timeUsed;
         std::lock_guard _lock(mGdtEntriesAccessMutex);
-        auto it = mGdtEntriesByEmails.find(email);
-        if(it != mGdtEntriesByEmails.end() && !it->second->canUpdate()) {
-            return UpdateStatus::SKIPPED;
+        auto emailCustomerIdsIt = mEmailCustomerIds.find(email);
+        if(emailCustomerIdsIt != mEmailCustomerIds.end()) {
+            auto it = mGdtEntriesByEmails.find(emailCustomerIdsIt->second);
+            if(it != mGdtEntriesByEmails.end() && !it->second->canUpdate()) {
+                return UpdateStatus::SKIPPED;
+            }
         }
-        bool customerExist = true;
-        auto customer = mysql::Customer::getByEmail(email, connection);
-        if(!customer) {
-            customer = std::make_shared<model::Customer>(email);
-            customerExist = false;
-        } 
-        auto gdtEntriesList = mysql::GdtEntry::getByCustomer(customer, connection);
+        // get customer id for email fresh from db
+        auto customerId = mysql::Customer::getByEmail(email, connection);
+        if(!customerId) {
+            return UpdateStatus::OK;
+        }
+        // update or insert customer id in email customer map
+        if(emailCustomerIdsIt == mEmailCustomerIds.end()) {
+            mEmailCustomerIds.insert({email, customerId});
+        } else {
+            emailCustomerIdsIt->second = customerId;
+        }        
         
-        for(auto email: customer->getEmails()) {
-            auto it = mGdtEntriesByEmails.find(email);
-            if(it == mGdtEntriesByEmails.end()) {
-                mGdtEntriesByEmails.insert({email, gdtEntriesList});
-            } else {
-                it->second = gdtEntriesList;
-            }
+        // read gdt entry list for customer fresh from db
+        auto gdtEntriesList = mysql::GdtEntry::getByCustomer(customerId, connection);
+        // update gdt entry list
+        auto it = mGdtEntriesByEmails.find(customerId);
+        if(it == mGdtEntriesByEmails.end()) {
+            mGdtEntriesByEmails.insert({customerId, gdtEntriesList});
+        } else {
+            it->second = gdtEntriesList;
         }
-        if(gdtEntriesList->getTotalCount() > 0) {
-            if(!customerExist) {
-                std::string message = "contact ";
-                message = email.substr(0, 5) + "... in contacts not found";
-                LOG_INFORMATION(message);
-            }
-            printf("[UpdateGdtEntryList] %s timeUsed for loading %ld contacts, %d gdt entries\n",
-                timeUsed.string().data(), customer->getEmails().size(), gdtEntriesList->getTotalCount()
-            );
-        }
+
         return UpdateStatus::OK;
     }
     catch(std::runtime_error& ex) {
@@ -340,6 +241,8 @@ CacheServer::UpdateStatus CacheServer::reloadGdtEntry(mysql_connection<mysql_fun
 
 CacheServer::UpdateStatus CacheServer::updateAllowedIps(bool ignoreTimeout) noexcept
 {
+    if(!g_Config->ipWhiteListing) return UpdateStatus::OK;
+
     auto now = time(nullptr);
     // update ips at least one per hour
     if(now - mLastUpdateAllowedIps > 60 * 60 || ignoreTimeout) 
@@ -387,10 +290,8 @@ CacheServer::UpdateStatus CacheServer::updateAllowedIps(bool ignoreTimeout) noex
 
 void CacheServer::loadFromDb(li::mysql_connection<li::mysql_functions_blocking> connection)
 {
-    model::CustomersMap customers;
-
     try {
-        customers = mysql::Customer::getAll(connection);
+        mEmailCustomerIds = mysql::Customer::getAll(connection);
     }
     catch(const boost::bad_lexical_cast& e) {
         LOG_ERROR("boost bad lexical cast by calling mysql::Customer::getAll");
@@ -399,84 +300,27 @@ void CacheServer::loadFromDb(li::mysql_connection<li::mysql_functions_blocking> 
 
     // check that our email regex pattern is matching all emails from db
     // it is used to filter out malicious requests
-    for (auto customer : customers) {
-        for (auto email : customer.second->getEmails()) {
-            // test regex pattern
-            if(!std::regex_match(email, g_EmailValidPattern)) {
-                std::string message = email;
-                message += " matched false with email valid pattern, please update pattern!";
-                LOG_ERROR(message);
-            }            
-        }
+    for (auto customer : mEmailCustomerIds) {
+        auto email = customer.first;
+        // test regex pattern
+        if(!std::regex_match(email, g_EmailValidPattern)) {
+            std::string message = email;
+            message += " matched false with email valid pattern, please update pattern!";
+            LOG_ERROR(message);
+        }                    
     }
 
     Profiler timeUsed;
-    std::vector<std::string> emailsNotInCustomer;
-    model::EmailGdtEntriesListMap gdtEntriesPerEmail;
+    std::lock_guard gdtEntriesAccessLock(mGdtEntriesAccessMutex);
     try {
-        gdtEntriesPerEmail = mysql::GdtEntry::getAll(customers, connection, emailsNotInCustomer);
+        mGdtEntriesByEmails = mysql::GdtEntry::getAll(connection);
     } catch(const boost::bad_lexical_cast& e) {
         LOG_ERROR("boost bad lexical cast by calling mysql::GdtEntry::getAll");
         throw;
     }
     printf("[%s] time used for loading all gdt entries from db into memory: %s\n", __FUNCTION__, timeUsed.string().data());
-    timeUsed.reset();
-
-    std::lock_guard gdtEntriesAccessLock(mGdtEntriesAccessMutex);
-    mGdtEntriesByEmails.clear();    
-    
-    // sort together
-    // for every email there is a map with gdt entries belonging to the customer (not only to this email)
-    for (auto customer : customers)
-    {
-        auto email = customer.second->getEmails().front();
-        auto it = gdtEntriesPerEmail.find(email);
-        if(it == gdtEntriesPerEmail.end()) {
-            LOG_ERROR("cannot find email in gdt entries map");
-        } else {
-            for (auto email : customer.second->getEmails()) {
-                mGdtEntriesByEmails.insert({email, it->second});
-            }
-        }
-    }
-    for(auto email: emailsNotInCustomer) {
-        auto it = gdtEntriesPerEmail.find(email);
-        if(it == gdtEntriesPerEmail.end()) {
-            LOG_ERROR("cannot find email in gdt entries map");
-        } else {
-            mGdtEntriesByEmails.insert({email, it->second});
-        }
-    }
+    timeUsed.reset();    
 }
-
-Document CacheServer::_listPerEmailApi(
-    const std::string &email,
-    int page /* = 1*/,
-    int count /*= 25*/,
-    view::OrderDirections order /* = model::GdtEntryList::OrderDirections::ASC */
-)
-{
-    std::stringstream requestUrlStream;
-    requestUrlStream
-        << "https://" << g_Config->gdtServerUrl << "/gdt-entries/listPerEmailApi/"
-        << email << "/" << std::to_string(page) << "/" << std::to_string(count) << "/"
-        << view::orderDirectionsToString(order);
-
-    auto res = http_get(requestUrlStream.str());
-
-    Document bodyJson;
-    bodyJson.Parse(res.body.data());
-    if (bodyJson.HasParseError())
-    {
-        throw RapidjsonParseErrorException(
-            "error parsing request answer",
-            bodyJson.GetParseError(),
-            bodyJson.GetErrorOffset())
-            .setRawText(res.body);
-    }
-    return bodyJson;
-}
-
 
 bool CacheServer::updateAllowedIp(const std::string& url)
 {

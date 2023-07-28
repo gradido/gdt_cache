@@ -1,9 +1,6 @@
 [submodule "third_party/lithium"]
 	path = third_party/lithium
 	url = https://github.com/matt-42/lithium
-[submodule "third_party/rapidjson"]
-	path = third_party/rapidjson
-	url = https://github.com/Tencent/rapidjson
 [submodule "third_party/mariadb-connector-c"]
 	path = third_party/mariadb-connector-c
 	url = https://github.com/mariadb-corporation/mariadb-connector-c.git
