@@ -101,9 +101,14 @@ std::string CacheServer::listPerEmailApi(
         message += ex.what();
         LOG_ERROR(message);
         throw http_error::internal_server_error("deadlock");
+    } catch(std::exception& ex) {
+        std::string message = "exception: ";
+        message += ex.what();
+        LOG_ERROR(message);
+        throw http_error::internal_server_error("unknown");
     } catch(...) {
         LOG_ERROR("unknown exception");
-        throw http_error::internal_server_error("unknown");
+        throw http_error::internal_server_error("unknown 2");
     }
 }
 
@@ -144,9 +149,14 @@ std::string CacheServer::sumPerEmailApi(const std::string &email)
         message += ex.what();
         LOG_ERROR(message);
         throw http_error::internal_server_error("deadlock");
+    } catch(std::exception& ex) {
+        std::string message = "exception: ";
+        message += ex.what();
+        LOG_ERROR(message);
+        throw http_error::internal_server_error("unknown");
     } catch(...) {
         LOG_ERROR("unknown exception");
-        throw http_error::internal_server_error("unknown");
+        throw http_error::internal_server_error("unknown 2");
     } 
 }
 
