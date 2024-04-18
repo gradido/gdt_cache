@@ -63,12 +63,18 @@ void checkIpAuthorized(http_request& request)
     throw http_error::unauthorized("{\"state\":\"error\"}");
 }
 
-int main()
+int main(int argc, char* argv[])
 {
     Profiler timeUsed;
     try {
         // load config
-        g_Config = new model::Config("config.json");
+        // use first parameter from command line if exist
+        if(argc > 1) {
+            g_Config  = new model::Config(argv[1]);
+        } else {        
+        // else use config.json in current working dir
+            g_Config = new model::Config("config.json");
+        }
     } catch(std::exception& e) {
         LOG_ERROR(e.what());
         return -4;
