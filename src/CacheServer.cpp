@@ -328,7 +328,7 @@ void CacheServer::loadFromDb(li::mysql_connection<li::mysql_functions_blocking> 
         LOG_ERROR("boost bad lexical cast by calling mysql::GdtEntry::getAll");
         throw;
     }
-    printf("[%s] time used for loading all gdt entries from db into memory: %s\n", __FUNCTION__, timeUsed.string().data());
+    // printf("[%s] time used for loading all gdt entries from db into memory: %s\n", __FUNCTION__, timeUsed.string().data());
     timeUsed.reset();    
 }
 
