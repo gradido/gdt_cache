@@ -154,6 +154,11 @@ std::string CacheServer::sumPerEmailApi(const std::string &email)
         message += ex.what();
         LOG_ERROR(message);
         throw http_error::internal_server_error("unknown");
+    } catch(http_error& ex) {
+        std::string message = "http_error: ";
+        message += ex.what();
+        LOG_ERROR(message);
+        throw ex;
     } catch(...) {
         LOG_ERROR("unknown exception");
         throw http_error::internal_server_error("unknown 2");
