@@ -3,6 +3,7 @@
 
 #include "Entry.h"
 #include <mutex>
+#include <shared_mutex>
 #include <list>
 #include <atomic>
 
@@ -17,15 +18,23 @@ namespace logging {
         std::string getErrorsHtml() noexcept;
         bool hasErrors() noexcept;
 
-        inline void setDbUpdateTime(const std::string& str) { mDBUpdateLastTimes.store(str);}
+        inline void setDbUpdateTime(const std::string& str);
 
     protected:
         ContainerSingleton();
         std::list<Entry> mLogEntries;
         std::recursive_mutex mWorkMutex;
         int mRemovedErrors;
-        std::atomic<std::string> mDBUpdateLastTimes;
+        std::string mDBUpdateLastTimes;
+        std::shared_mutex mDBUpdateLastTimeMutex;
     };
+
+    // inline functions
+    void ContainerSingleton::setDbUpdateTime(const std::string& str) 
+    {
+        std::unique_lock _lock(mDBUpdateLastTimeMutex);
+        mDBUpdateLastTimes = str;
+    }
 }
 
 #endif //__GDT_CACHE_LOG_CONTAINER_SINGLETON_H
