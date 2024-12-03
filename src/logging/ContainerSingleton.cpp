@@ -26,7 +26,7 @@ namespace logging {
         try {
             std::lock_guard _lock(mWorkMutex);
             mLogEntries.push_back(log);
-            while(mLogEntries.size() > 1000) {
+            while(mLogEntries.size() > 100) {
                 mLogEntries.pop_front();
                 mRemovedErrors++;
             }

@@ -55,9 +55,9 @@ std::string CacheServer::listPerEmailApi(
 {
     Profiler timeUsed;
     try {
-        std::unique_lock _lock(mGdtEntriesAccessMutex, 10ms);
+        std::unique_lock _lock(mGdtEntriesAccessMutex, 100ms);
         if(!_lock) {
-            throw http_error(504, "timeout mutex 10ms");
+            throw http_error(504, "timeout mutex 100ms");
         }
         auto emailCustomerIdsIt = mEmailCustomerIds.find(email);
         model::GdtEntryListPtr gdtEntryList;
@@ -116,9 +116,9 @@ std::string CacheServer::sumPerEmailApi(const std::string &email)
 {
     Profiler timeUsed;
     try {
-        std::unique_lock _lock(mGdtEntriesAccessMutex, 10ms);
+        std::unique_lock _lock(mGdtEntriesAccessMutex, 100ms);
         if(!_lock) {
-            throw http_error(504, "timeout mutex 10ms");
+            throw http_error(504, "timeout mutex 100ms");
         }
         auto emailCustomerIdsIt = mEmailCustomerIds.find(email);
         model::GdtEntryListPtr gdtEntryList;
