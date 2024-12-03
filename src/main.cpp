@@ -106,7 +106,9 @@ int main(int argc, char* argv[])
         if(ec->hasErrors()) {
             response.write("<html><head><title>Errors</title></head><body>" + ec->getErrorsHtml() + "</body></html>");
         } else { 
-            response.write("status: ok");
+            std::string responseString = ec->getDbLastUpdateTime();
+            responseString += "<br>status: ok";
+            response.write(responseString);
         }        
     };
     api.get("/listPerEmailApi") = [](http_request& request, http_response& response) {

@@ -19,6 +19,7 @@ namespace logging {
         bool hasErrors() noexcept;
 
         inline void setDbUpdateTime(const std::string& str);
+        inline std::string getDbLastUpdateTime() const;
 
     protected:
         ContainerSingleton();
@@ -26,7 +27,7 @@ namespace logging {
         std::recursive_mutex mWorkMutex;
         int mRemovedErrors;
         std::string mDBUpdateLastTimes;
-        std::shared_mutex mDBUpdateLastTimeMutex;
+        mutable std::shared_mutex mDBUpdateLastTimeMutex;
     };
 
     // inline functions
@@ -34,6 +35,12 @@ namespace logging {
     {
         std::unique_lock _lock(mDBUpdateLastTimeMutex);
         mDBUpdateLastTimes = str;
+    }
+
+    std::string ContainerSingleton::getDbLastUpdateTime() const
+    {
+        std::shared_lock _lock(mDBUpdateLastTimeMutex);
+        return mDBUpdateLastTimes;
     }
 }
 
