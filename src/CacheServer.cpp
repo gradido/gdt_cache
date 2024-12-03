@@ -326,12 +326,17 @@ void CacheServer::loadFromDb(li::mysql_connection<li::mysql_functions_blocking> 
     }
 
     Profiler timeUsed;
-    std::lock_guard gdtEntriesAccessLock(mGdtEntriesAccessMutex);
+    model::EmailGdtEntriesListMap gdtEntriesByEmail;
     try {
-        mGdtEntriesByEmails = mysql::GdtEntry::getAll(connection);
+        gdtEntriesByEmail = mysql::GdtEntry::getAll(connection);
     } catch(const boost::bad_lexical_cast& e) {
         LOG_ERROR("boost bad lexical cast by calling mysql::GdtEntry::getAll");
         throw;
+    }
+    // lock gdt entries only for move results and delete old
+    {
+        std::lock_guard gdtEntriesAccessLock(mGdtEntriesAccessMutex);    
+        mGdtEntriesByEmails = std::move(gdtEntriesByEmail);
     }
     // printf("[%s] time used for loading all gdt entries from db into memory: %s\n", __FUNCTION__, timeUsed.string().data());
     timeUsed.reset();    
