@@ -45,7 +45,9 @@ namespace logging {
             std::lock_guard _lock(mWorkMutex);
             // lithium hardcoded buffer size - 100 for html page
             int maxHtmlSize = 50 * 1024 - 100;
-            std::string resultHtml = "<ul class='errors'>";
+            std::string resultHtml = "<ul class='success'>";
+            resultHtml += "<li>" + mDBUpdateLastTimes.load() + "</li>";
+            resultHtml += "</ul><ul class='errors'>";
             for(auto log: mLogEntries){
                 std::stringstream logMessageHtml;
                 logMessageHtml << "<li>";

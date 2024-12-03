@@ -4,6 +4,7 @@
 #include "Entry.h"
 #include <mutex>
 #include <list>
+#include <atomic>
 
 namespace logging {
     class ContainerSingleton
@@ -16,11 +17,14 @@ namespace logging {
         std::string getErrorsHtml() noexcept;
         bool hasErrors() noexcept;
 
+        inline void setDbUpdateTime(const std::string& str) { mDBUpdateLastTimes.store(str);}
+
     protected:
         ContainerSingleton();
         std::list<Entry> mLogEntries;
         std::recursive_mutex mWorkMutex;
         int mRemovedErrors;
+        std::atomic<std::string> mDBUpdateLastTimes;
     };
 }
 

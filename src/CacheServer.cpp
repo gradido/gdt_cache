@@ -1,6 +1,7 @@
 #include "lithium_symbols.h"
 #include "CacheServer.h"
 #include "logging/Logging.h"
+#include "logging/ContainerSingleton.h"
 #include "mysql/Customer.h"
 #include "mysql/GdtEntry.h"
 #include "model/Config.h"
@@ -326,18 +327,24 @@ void CacheServer::loadFromDb(li::mysql_connection<li::mysql_functions_blocking> 
     }
 
     Profiler timeUsed;
+    std::string dbTime = "dbTime: ";
     model::EmailGdtEntriesListMap gdtEntriesByEmail;
     try {
         gdtEntriesByEmail = mysql::GdtEntry::getAll(connection);
+        dbTime += timeUsed.string();
     } catch(const boost::bad_lexical_cast& e) {
         LOG_ERROR("boost bad lexical cast by calling mysql::GdtEntry::getAll");
         throw;
     }
+    dbTime += ", list move time: ";
     // lock gdt entries only for move results and delete old
     {
+        Profiler timeUsedLocked;
         std::lock_guard gdtEntriesAccessLock(mGdtEntriesAccessMutex);    
         mGdtEntriesByEmails = std::move(gdtEntriesByEmail);
-    }
+        dbTime += timeUsedLocked.string();
+    }    
+    logging::ContainerSingleton::getInstance()->setDbUpdateTime(dbTime);
     // printf("[%s] time used for loading all gdt entries from db into memory: %s\n", __FUNCTION__, timeUsed.string().data());
     timeUsed.reset();    
 }
