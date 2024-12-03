@@ -337,13 +337,13 @@ void CacheServer::loadFromDb(li::mysql_connection<li::mysql_functions_blocking> 
         throw;
     }
     dbTime += ", list move time: ";
+    Profiler timeUsedLocked;
     // lock gdt entries only for move results and delete old
     {
-        Profiler timeUsedLocked;
         std::lock_guard gdtEntriesAccessLock(mGdtEntriesAccessMutex);    
-        mGdtEntriesByEmails = std::move(gdtEntriesByEmail);
-        dbTime += timeUsedLocked.string();
-    }    
+        mGdtEntriesByEmails = std::move(gdtEntriesByEmail);   
+    }   
+    dbTime += timeUsedLocked.string(); 
     logging::ContainerSingleton::getInstance()->setDbUpdateTime(dbTime);
     // printf("[%s] time used for loading all gdt entries from db into memory: %s\n", __FUNCTION__, timeUsed.string().data());
     timeUsed.reset();    
