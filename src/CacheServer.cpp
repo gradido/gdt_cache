@@ -272,9 +272,8 @@ CacheServer::UpdateStatus CacheServer::updateAllowedIps(bool ignoreTimeout) noex
             //Profiler timeUsed;
             mAllowedIpsMutex.lock();
             auto hostsCount = g_Config->allowedHosts.size();
-            if(mAllowedIps.capacity() != hostsCount*2) {
-                mAllowedIps.resize(hostsCount*2, "");
-            }
+            //Resizes the container to contain count elements, does nothing if count == size(). 
+            mAllowedIps.resize(hostsCount*2, "");
             mAllowedIpsMutex.unlock();
             for(auto i = 0; i < hostsCount; i++) {
                 if(updateAllowedIp(g_Config->allowedHosts[i])) {
